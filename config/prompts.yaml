@@ -304,9 +304,51 @@ test_generation:
 #     system: ...
 #     task: ...
 
-# ── Phase 3: Classification (placeholder) ───────────────────────────────────
+# ── Phase 3: Classification ──────────────────────────────────────────────────
 
-# classification:
-#   sa_ea_ac_judge:
-#     system: ...
-#     task: ...
+classification:
+
+  sa_ea_ac_judge:
+
+    system: |
+      You are an expert evaluating how an AI model responds to an ambiguous coding prompt.
+      Answer three yes/no questions about the model's response.
+      You MUST respond with ONLY a single valid JSON object. No extra text or explanation.
+
+    task: |
+      ## Prompt Given to the Model
+      ```
+      {perturbed_prompt}
+      ```
+
+      ## Model Response
+
+      **Internal Reasoning** (chain-of-thought before visible output, if any):
+      {think_block}
+
+      **Natural Language Text** (non-code prose in visible output):
+      {prose}
+
+      **Code Produced** (extracted from response):
+      {code_block}
+
+      ---
+
+      ## Evaluation Questions
+
+      Answer each question true or false based solely on the response above.
+
+      **Q1 — Question Present?**
+      Does the response contain a direct question addressed to the user requesting
+      missing information or clarification about the prompt?
+
+      **Q2 — Code Present?**
+      Does the response contain a Python code implementation (function, script, or snippet)?
+
+      **Q3 — Explicit Assumption?**
+      Does the response state a specific premise or assumption about the prompt's intended
+      meaning in natural language, before or alongside the code?
+      Examples: "Assuming ascending order...", "I'll interpret this as...", "Note: I'm treating..."
+
+      Respond with ONLY this JSON (true/false values, no quotes around booleans):
+      {{"q1_question_present": false, "q2_code_present": true, "q3_explicit_assumption": false, "rationale": "one sentence explaining the classification"}}
