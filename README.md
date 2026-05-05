@@ -32,20 +32,30 @@ with open("data/benchmark/benchmark.jsonl") as f:
 ```python
 from src.util.llm import LLMClient, ModelConfig
 from src.util.sandbox import Sandbox
+from src.data.ds1000_normalizer import _wrap_solution_as_string
 
 client = LLMClient()
-sandbox = Sandbox()
+sandbox = Sandbox()                                  # MBPP / HumanEval
+sandbox_ds = Sandbox(image="ambicode-ds1000")        # DS-1000
 config = ModelConfig(model="gpt-5.4-mini", temperature=0.8, max_tokens=1024)
 
 item = items[0]
 
-# Baseline
-resp = client.call(config, prompt=item.prompt, system="Write ONLY Python code.")
+# Baseline (clean prompt)
+resp = client.call(config, prompt=item.prompt, system=SYSTEM_PROMPT)
 result = sandbox.run(resp.choices[0], item.test_code)
 
-# Perturbed (ambiguous)
-resp = client.call(config, prompt=item.perturbed_prompt, system="Write ONLY Python code.")
-result_a, result_b = sandbox.run_dual_blind(resp.choices[0], item.test_a, item.test_b)
+# Perturbed (ambiguous prompt) — dual-blind execution
+resp = client.call(config, prompt=item.perturbed_prompt, system=SYSTEM_PROMPT)
+if item.source == "ds1000":
+    # test_a is the harness (needs __SOLUTION__); test_b is self-contained
+    wrapped = _wrap_solution_as_string(resp.choices[0])
+    result_a = sandbox_ds.run(wrapped, item.test_a, timeout_s=60)
+    result_b = sandbox_ds.run(resp.choices[0], item.test_b, timeout_s=60)
+else:
+    result_a, result_b = sandbox.run_dual_blind(
+        resp.choices[0], item.test_a, item.test_b
+    )
 ```
 
 See `notebooks/evaluation_demo.ipynb` for a complete walkthrough.
@@ -183,33 +193,76 @@ result_b = sandbox_ds.run(llm_output, item.test_b, timeout_s=60)
 
 **Sandbox**: `Sandbox(image="ambicode-ds1000")` — requires building the Docker image.
 
-### Common: Markdown Fence Stripping
+### Common: Code Extraction
 
-LLMs frequently wrap output in ` ```python ... ``` ` despite system prompt instructions.
-**Always strip fences** before sandbox execution.
+`scripts/run_perturbed_eval.py` extracts code from raw LLM responses with this priority:
 
-```python
-import re
+1. `@@CODE_START@@ ... @@CODE_END@@` markers (system-prompt-instructed)
+2. `` ```python ... ``` `` fence (markdown fallback)
+3. `<code>...</code>` HTML tags
+4. **Heuristic**: text contains code patterns (`def`/`import`/`return`/`=`) AND not a question
+5. Empty (response is pure prose — likely a clarification question)
 
-def strip_markdown_fences(code):
-    code = re.sub(r'^```(?:python)?\s*\n', '', code.strip())
-    code = re.sub(r'\n```\s*$', '', code)
-    return code.strip()
+If none of 1–4 match, `code = ""` so the response is treated as a clarification (AC) rather than being mis-fed to the sandbox.
+
+### System Prompt Design
+
+The pipeline uses **Mode B "lightweight permission"** — naturalistic, model self-detects ambiguity:
+
+```
+You are a helpful Python programming assistant.
+If anything about the user's request is unclear, you may ask a clarifying question.
+Otherwise, write the requested Python code and wrap it in @@CODE_START@@ and @@CODE_END@@ markers.
 ```
 
-### Recommended System Prompt
+**Why this wording**:
+- Does not pre-announce "this prompt may be ambiguous" (which would be a meta-prompt biasing toward AC)
+- Does not enumerate SA/EA/AC as options (same reason)
+- Grants permission to ask without strongly encouraging it
+- Identical for baseline and perturbed prompts (so AC behavior is attributable to ambiguity, not prompt difference)
 
-```
-You are a Python code generator. Write ONLY the Python function implementation.
-No explanation, no markdown fences, no extra text. Just the code.
-```
+**Empirical finding**: with this prompt, modern instruction-tuned coding models still default to writing code; AC rates are typically <5%. This reflects real deployment behavior. To raise AC rates, you would need to explicitly enumerate options (which contaminates the measurement).
 
 ## Evaluation Metrics
 
-- **Ambiguity Tax** = pass@k(baseline) - pass@k(perturbed)
-- **Interpretation Bias** = asymmetry between pass@k(A) and pass@k(B)
-- **Behavioral Distribution** = proportion of SA / EA / AC responses per model
-- **Conditional pass@k** = pass@k given ambiguous prompt, stratified by interpretation
+The pipeline reports three layers of metrics. Use them at increasing granularity.
+
+### 1. Test-level rates (a sample can satisfy both tests)
+
+| Metric | Formula | Meaning |
+|---|---|---|
+| `pass_a_rate` | `Σ pass_a_count / Σ n_samples` | Fraction of samples whose code passes test_a |
+| `pass_b_rate` | `Σ pass_b_count / Σ n_samples` | Fraction passing test_b |
+| `pass_either_rate` | `Σ pass_either_count / Σ n_samples` | Fraction passing test_a OR test_b |
+
+### 2. Choice decomposition (mutually exclusive — sums to 100%)
+
+| Metric | Condition | Interpretation |
+|---|---|---|
+| `chose_a_rate` | `passed_a=T, passed_b=F` | Model picked interpretation A |
+| `chose_b_rate` | `passed_b=T, passed_a=F` | Model picked interpretation B |
+| `both_pass_rate` | both pass | Tests cannot distinguish (don't use for bias analysis) |
+| `neither_rate` | neither pass | Code error or wrong choice |
+| `interp_a_bias` | `chose_a / (chose_a + chose_b)` | Among decisive samples, fraction picking A (50% = unbiased) |
+
+### 3. Unbiased pass@k (Chen et al. 2021)
+
+Per-item pass@k = `1 - C(n-c, k) / C(n, k)`, then averaged across items.
+
+| Metric | Meaning |
+|---|---|
+| `baseline_pass_at_1`, `baseline_pass_at_3` | Baseline pass@k on clean prompts |
+| `pass_a_at_k`, `pass_b_at_k`, `pass_either_at_k` | Conditional pass@k for each interpretation |
+| `chose_a_at_k`, `chose_b_at_k` | pass@k of the choice decomposition events |
+| `ambiguity_tax_at_k_pp` | `(baseline_pass_at_k − pass_either_at_k) × 100` |
+
+**Default** computes both `k=1` and `k=3`. `n_samples=5` is the minimum to support pass@3.
+
+### Top-line metrics
+
+- **Ambiguity Tax** = `baseline_pass@k − pass_either@k` (model is "successful" if it produces valid code for either valid interpretation)
+- **Interpretation Bias** = `interp_a_bias` (whether the model systematically prefers one reading)
+- **Behavioral Distribution** = SA / EA / AC fractions from the LLM-judge classifier
 
 ## Project Structure
 

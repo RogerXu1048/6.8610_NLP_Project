@@ -113,10 +113,34 @@ data/
 ## Pipeline Phases
 
 1. **Data** (Phase 1): Anchor selection → ambiguity injection → reference solutions → test authoring → quality gate
-2. **Inference** (Phase 2): Two-condition batch sampling (clean + perturbed) with temperature sampling
-3. **Classification** (Phase 3): LLM-as-Judge with structured boolean rubric → SA/EA/AC labels
-4. **Execution** (Phase 4): Dual-blind sandbox against Test-A and Test-B
-5. **Analysis** (Phase 5): Ambiguity Tax, behavioral distributions, conditional pass@k
+2. **Inference** (Phase 2): Two-condition sampling (clean + perturbed) with sandbox execution
+3. **Classification** (Phase 3): LLM-as-Judge → SA/EA/AC labels (Q1/Q2/Q3 rubric → deterministic mapping)
+4. **Analysis** (Phase 4): Ambiguity Tax, conditional pass@k, behavioral distributions, plots
+
+## Evaluation Metrics (Phase 4)
+
+Three metric layers, all in `data/results/metrics_summary.{json,csv}`:
+
+1. **Test-level (aggregate)** — sample can satisfy both tests:
+   `pass_a_rate`, `pass_b_rate`, `pass_either_rate`
+2. **Choice decomposition** — mutually exclusive, sums to 1:
+   `chose_a_rate` (passed_a only), `chose_b_rate` (passed_b only), `both_pass_rate` (tests can't distinguish), `neither_rate`, `interp_a_bias = chose_a / (chose_a + chose_b)`
+3. **Unbiased pass@k** (Chen et al. 2021) for `K_VALUES = [1, 3]`:
+   `baseline_pass_at_k`, `pass_a/b/either_at_k`, `chose_a/b_at_k`, `ambiguity_tax_at_k_pp`
+
+**Top-line Ambiguity Tax** = `baseline_pass@k − pass_either@k` (success = code satisfies *either* valid interpretation).
+
+## System Prompt (Mode B "lightweight permission")
+
+Same prompt for baseline and perturbed runs; perturbed-only AC is attributable to ambiguity:
+
+```
+You are a helpful Python programming assistant.
+If anything about the user's request is unclear, you may ask a clarifying question.
+Otherwise, write the requested Python code and wrap it in @@CODE_START@@ and @@CODE_END@@ markers.
+```
+
+Naturalistic — no meta-prompt that pre-announces "this might be ambiguous" or enumerates SA/EA/AC options.
 
 ## Current Status
 
@@ -127,9 +151,13 @@ data/
   - Scaled pipeline built (`scripts/run_scaled_pipeline.py`)
 - **Phases 2–4 (Inference, Classification, Analysis)**: DONE
   - Phase 2 — `run_baseline_eval.py` + `run_perturbed_eval.py`: two-condition sampling with sandbox execution
+    - DS-1000 dual-blind: `__SOLUTION__` wrapper for test_a (harness), raw code for test_b (self-contained)
+    - `parse_response` heuristic distinguishes code-without-markers from clarification questions
   - Phase 3 — `run_classification.py`: LLM-as-Judge with 3-question rubric → SA/EA/AC labels
-  - Phase 4 — `analyze_results.py`: Ambiguity Tax, behavioral distributions, conditional pass@k, plots
+    - Judge failures tracked as `error` label (visible in stats, not silently dropped)
+    - Auto-judge selection avoids same-family circularity (Claude → gpt-5.4-mini; others → claude-haiku)
+  - Phase 4 — `analyze_results.py`: 3-layer metrics + 8+ plots
+    - Unbiased pass@k via Chen et al. 2021 estimator
+    - Cross-model analysis via auto-discovery or explicit `--baseline/--perturbed/--classified` lists
   - End-to-end: `run_full_pipeline.py` runs all 4 phases for one model
-  - Judge auto-selection avoids same-family circularity (Claude models judged by gpt-5.4-mini; others by claude-haiku)
-- **Phase 5 (Cross-Model Analysis)**: Available via `analyze_results.py` with `--baseline/--perturbed/--classified` lists across multiple models
-- See `docs/project_status.md` for full details
+- See `docs/project_status.md` for full details and audit fixes

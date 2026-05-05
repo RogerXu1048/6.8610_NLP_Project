@@ -199,32 +199,54 @@ No explanation, no markdown fences, no extra text. Just the code.
 
 ### Phase 2 — Inference (Two-Condition Sampling)
 
-For each item, send both the clean and perturbed prompts using the source-specific prompting strategy above:
+The pipeline scripts handle source-specific prompting and dual-blind execution automatically. To run end-to-end for one model:
+
+```bash
+python scripts/run_full_pipeline.py --model gpt-5.4 --n-samples 5 --temperature 0.8
+```
+
+Or to call the LLM directly:
 
 ```python
 from src.util.llm import LLMClient, ModelConfig
+from src.util.sandbox import Sandbox
+from src.data.ds1000_normalizer import _wrap_solution_as_string
+
+# Mode B "lightweight permission" system prompt — see "System Prompt Design" below
+SYSTEM_PROMPT = (
+    "You are a helpful Python programming assistant. "
+    "If anything about the user's request is unclear, you may ask a clarifying question. "
+    "Otherwise, write the requested Python code and wrap it in "
+    "@@CODE_START@@ and @@CODE_END@@ markers."
+)
 
 client = LLMClient()
 config = ModelConfig(model="gpt-5.4", temperature=0.8, max_tokens=1024)
 
-for item in items:
-    prompt_fn = build_source_prompt(item)  # apply source-specific logic
+# Baseline (clean prompt)
+clean_resp = client.call(config, prompt=item.prompt, system=SYSTEM_PROMPT)
 
-    # Baseline condition (clean prompt)
-    clean_response = client.call(config, prompt=prompt_fn(item.prompt))
-
-    # Experimental condition (perturbed prompt)
-    perturbed_response = client.call(config, prompt=prompt_fn(item.perturbed_prompt))
+# Experimental (perturbed prompt)
+pert_resp = client.call(config, prompt=item.perturbed_prompt, system=SYSTEM_PROMPT)
 ```
 
 ### Phase 3 — Behavioral Classification
 
 Classify each perturbed response as:
-- **Silent Assumption (SA)**: model picks one interpretation without mentioning ambiguity
-- **Explicit Assumption (EA)**: model states its assumption before answering
-- **Active Clarification (AC)**: model asks for clarification
+- **Silent Assumption (SA)**: model writes code without mentioning ambiguity
+- **Explicit Assumption (EA)**: model states its assumption before/with the code
+- **Active Clarification (AC)**: model asks for clarification instead of writing code
 
-(Classification strategy TBD — requires careful prompt design for LLM-as-Judge.)
+The classifier is an LLM judge that answers 3 yes/no questions per response (Q1: question present? Q2: code present? Q3: explicit assumption?), mapping deterministically:
+
+| Q1 | Q2 | Q3 | Label |
+|---|---|---|---|
+| Y | * | * | AC |
+| N | Y | Y | EA |
+| N | Y | N | SA |
+| N | N | * | unclassifiable |
+
+Auto-judge selection avoids same-family circularity: Claude models judged by `gpt-5.4-mini`; all others by `claude-haiku`.
 
 ### Phase 4 — Dual-Blind Execution
 
@@ -232,24 +254,67 @@ Run each generated solution against both test suites:
 
 ```python
 from src.util.sandbox import Sandbox
+from src.data.ds1000_normalizer import _wrap_solution_as_string
 
-sandbox = Sandbox()                          # for MBPP / HumanEval
+sandbox = Sandbox()                            # for MBPP / HumanEval
 sandbox_ds = Sandbox(image="ambicode-ds1000")  # for DS-1000
 
-result_a, result_b = sandbox.run_dual_blind(
-    code=model_response,
-    test_a=item.test_a,
-    test_b=item.test_b,
-)
-# result_a.passed -> matches interpretation A
-# result_b.passed -> matches interpretation B
+if item.source == "ds1000":
+    # test_a is the harness (needs __SOLUTION__); test_b is self-contained
+    wrapped = _wrap_solution_as_string(model_code)
+    result_a = sandbox_ds.run(wrapped, item.test_a, timeout_s=60)
+    result_b = sandbox_ds.run(model_code, item.test_b, timeout_s=60)
+else:
+    result_a, result_b = sandbox.run_dual_blind(
+        code=model_code, test_a=item.test_a, test_b=item.test_b,
+    )
 ```
 
 ### Phase 5 — Analysis
 
-- **Ambiguity Tax**: `pass@k(clean) - pass@k(perturbed)`
-- **Behavioral Distribution**: proportion of SA / EA / AC across models
-- **Conditional pass@k**: pass@k(A) and pass@k(B) given ambiguous prompt
+`scripts/analyze_results.py` computes three layers of metrics:
+
+#### Layer 1 — Test-level rates (a sample can satisfy both tests)
+- `pass_a_rate`, `pass_b_rate`, `pass_either_rate`
+
+#### Layer 2 — Choice decomposition (mutually exclusive, sums to 1)
+| Metric | Definition |
+|---|---|
+| `chose_a_rate` | passed_a only — model picked interpretation A |
+| `chose_b_rate` | passed_b only — model picked B |
+| `both_pass_rate` | both pass — tests cannot distinguish |
+| `neither_rate` | neither pass — code error or wrong choice |
+| `interp_a_bias` | `chose_a / (chose_a + chose_b)` — fraction of decisive samples picking A |
+
+#### Layer 3 — Unbiased pass@k (Chen et al. 2021)
+Per-item `pass@k = 1 − C(n−c, k) / C(n, k)`, averaged across items. Default `K_VALUES = [1, 3]`.
+
+#### Top-line metrics
+
+- **Ambiguity Tax** = `baseline_pass@k − pass_either@k` (success = code satisfies *either* valid interpretation)
+- **Interpretation Bias** = `interp_a_bias` (50% = unbiased; >50% prefers A)
+- **Behavioral Distribution** = SA / EA / AC fractions per model
+
+## System Prompt Design (Mode B)
+
+The pipeline uses a **naturalistic system prompt with lightweight permission** — same for baseline and perturbed:
+
+```
+You are a helpful Python programming assistant.
+If anything about the user's request is unclear, you may ask a clarifying question.
+Otherwise, write the requested Python code and wrap it in @@CODE_START@@ and @@CODE_END@@ markers.
+```
+
+**Design rationale**:
+
+| Goal | How it's achieved |
+|---|---|
+| Don't pre-announce ambiguity | No "this prompt may be ambiguous" or "choose A/B/C" wording |
+| Allow AC without forcing it | Single permission sentence ("you may ask"), no enumeration of options |
+| Comparable across conditions | Identical baseline/perturbed system prompt; only user prompt differs |
+| Match real deployment | Generic "helpful assistant" framing, not "code generator" directive |
+
+**Empirical observation**: with this prompt + temperature=0.8, modern coding LLMs (gpt-5.4, claude-sonnet) produce <5% AC behavior. This reflects real default behavior of instruction-tuned models. Higher AC rates would require enumerating options in the system prompt, which contaminates the measurement.
 
 ## Ambiguity Types
 
