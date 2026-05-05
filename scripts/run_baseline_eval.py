@@ -45,21 +45,26 @@ RESULTS_DIR = Path(__file__).resolve().parent.parent / "data" / "results"
 
 # ── Prompt helpers ─────────────────────────────────────────────────────────────
 
+# System prompts must be IDENTICAL between baseline and perturbed eval —
+# only the user prompt differs (clean vs. perturbed). See run_perturbed_eval.py
+# for rationale (Mode B "lightweight permission" — naturalistic, no meta-prompt).
+# AC behavior should not be triggered on clean prompts; equal prompts ensure
+# any AC seen on perturbed runs is attributable to ambiguity, not the system message.
+
 SYSTEM_PROMPT_MBPP = (
-    "You are a professional Python programmer. Read the problem carefully and write a correct Python solution. "
-    "Wrap your final code in @@CODE_START@@ and @@CODE_END@@ markers exactly as shown."
+    "You are a helpful Python programming assistant. "
+    "If anything about the user's request is unclear, you may ask a clarifying question. "
+    "Otherwise, write the requested Python code and wrap it in "
+    "@@CODE_START@@ and @@CODE_END@@ markers."
 )
 
-# DS-1000 solutions must be inline code that sets `result`, not bare function definitions.
-# The harness executes the code in a context where problem variables (df, X, etc.) are
-# already defined, then checks the `result` variable.
 SYSTEM_PROMPT_DS1000 = (
-    "You are a professional Python programmer solving a data science problem. "
-    "Write executable Python code (NOT a bare function definition). "
-    "The problem's variables (e.g. df, X, data) are already defined in your execution context — use them directly. "
-    "Do NOT read from files or re-initialize data that is already provided. "
-    "Store your final answer in a variable named `result`. "
-    "Wrap your final code in @@CODE_START@@ and @@CODE_END@@ markers exactly as shown."
+    "You are a helpful Python programming assistant solving a data science problem. "
+    "If anything about the user's request is unclear, you may ask a clarifying question. "
+    "Otherwise, write executable Python code that uses the variables already defined "
+    "in the execution context (e.g. df, X, data) — do not read from files or "
+    "re-initialize provided data. Store your final answer in a variable named `result`. "
+    "Wrap your code in @@CODE_START@@ and @@CODE_END@@ markers."
 )
 
 

@@ -49,9 +49,14 @@ config/
 scripts/
 ├── download_data.py    # Download all benchmarks to data/raw/
 ├── normalize_ds1000.py # Normalize DS-1000 tasks for concatenation execution
-├── run_anchor_selection.py  # Run anchor selection pipeline
-├── run_perturbation.py      # Run 4-stage perturbation pipeline
-└── run_scaled_pipeline.py   # Scaled pipeline — 10 parallel workers → 50+ items
+├── run_anchor_selection.py  # Phase 1.1b: Run anchor selection
+├── run_perturbation.py      # Phase 1.2-1.5: Run 4-stage perturbation pipeline
+├── run_scaled_pipeline.py   # Phase 1: Scaled pipeline — 10 parallel workers
+├── run_baseline_eval.py     # Phase 2: Baseline (clean prompt) inference
+├── run_perturbed_eval.py    # Phase 2: Perturbed (ambiguous prompt) inference
+├── run_classification.py    # Phase 3: SA/EA/AC behavioral classification
+├── analyze_results.py       # Phase 4: Aggregate, metrics, plots
+└── run_full_pipeline.py     # Phases 2-4 end-to-end orchestrator
 docker/
 └── ds1000.Dockerfile   # Docker image with data science packages for DS1000
 docs/
@@ -61,7 +66,8 @@ docs/
 data/
 ├── raw/                # Downloaded benchmark JSONL (gitignored)
 ├── intermediate/       # Pipeline intermediate outputs (gitignored)
-└── benchmark/          # Final benchmark items (benchmark.jsonl tracked in git)
+├── benchmark/          # Final benchmark items (benchmark.jsonl tracked in git)
+└── results/            # Phase 2-4 outputs: baseline/perturbed/classified JSONL + plots
 ```
 
 ### Key Design Decisions
@@ -119,5 +125,11 @@ data/
   - All 5 ambiguity types and both risk levels represented
   - DS-1000 normalization done (845 tasks, Matplotlib excluded)
   - Scaled pipeline built (`scripts/run_scaled_pipeline.py`)
-  - See `docs/project_status.md` for full details
-- **Phases 2–5**: NOT STARTED — infrastructure (LLM client, sandbox) is ready
+- **Phases 2–4 (Inference, Classification, Analysis)**: DONE
+  - Phase 2 — `run_baseline_eval.py` + `run_perturbed_eval.py`: two-condition sampling with sandbox execution
+  - Phase 3 — `run_classification.py`: LLM-as-Judge with 3-question rubric → SA/EA/AC labels
+  - Phase 4 — `analyze_results.py`: Ambiguity Tax, behavioral distributions, conditional pass@k, plots
+  - End-to-end: `run_full_pipeline.py` runs all 4 phases for one model
+  - Judge auto-selection avoids same-family circularity (Claude models judged by gpt-5.4-mini; others by claude-haiku)
+- **Phase 5 (Cross-Model Analysis)**: Available via `analyze_results.py` with `--baseline/--perturbed/--classified` lists across multiple models
+- See `docs/project_status.md` for full details

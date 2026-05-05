@@ -45,21 +45,54 @@ RESULTS_DIR = Path(__file__).resolve().parent.parent / "data" / "results"
 # Same wording as run_baseline_eval.py — model sees the ambiguous prompt naturally
 # and produces thinking / assumptions / clarification questions organically.
 
+# System prompts use Mode B "lightweight permission":
+# the model is granted permission to ask a clarifying question if anything is
+# unclear, but is NOT told that the prompt may be ambiguous. Detection of
+# ambiguity is left to the model. The wording mirrors a generic deployed
+# assistant context — no meta-prompt enumerating SA/EA/AC options.
+
 SYSTEM_PROMPT_MBPP = (
-    "You are a professional Python programmer. Read the problem carefully and write a correct Python solution. "
-    "Wrap your final code in @@CODE_START@@ and @@CODE_END@@ markers exactly as shown."
+    "You are a helpful Python programming assistant. "
+    "If anything about the user's request is unclear, you may ask a clarifying question. "
+    "Otherwise, write the requested Python code and wrap it in "
+    "@@CODE_START@@ and @@CODE_END@@ markers."
 )
 
 SYSTEM_PROMPT_DS1000 = (
-    "You are a professional Python programmer solving a data science problem. "
-    "Write executable Python code (NOT a bare function definition). "
-    "The problem's variables (e.g. df, X, data) are already defined in your execution context — use them directly. "
-    "Do NOT read from files or re-initialize data that is already provided. "
-    "Store your final answer in a variable named `result`. "
-    "Wrap your final code in @@CODE_START@@ and @@CODE_END@@ markers exactly as shown."
+    "You are a helpful Python programming assistant solving a data science problem. "
+    "If anything about the user's request is unclear, you may ask a clarifying question. "
+    "Otherwise, write executable Python code that uses the variables already defined "
+    "in the execution context (e.g. df, X, data) — do not read from files or "
+    "re-initialize provided data. Store your final answer in a variable named `result`. "
+    "Wrap your code in @@CODE_START@@ and @@CODE_END@@ markers."
 )
 
 # ── Response parsing ───────────────────────────────────────────────────────────
+
+
+_CODE_PATTERNS = [
+    re.compile(r"^\s*import\s+\w+", re.MULTILINE),
+    re.compile(r"^\s*from\s+\w+\s+import", re.MULTILINE),
+    re.compile(r"^\s*def\s+\w+\s*\(", re.MULTILINE),
+    re.compile(r"^\s*class\s+\w+", re.MULTILINE),
+    re.compile(r"^\s*return\s+", re.MULTILINE),
+    re.compile(r"^\s*\w+\s*=\s*[^=]", re.MULTILINE),  # assignment, not ==
+]
+
+
+def _looks_like_code(text: str) -> bool:
+    """Heuristic: does the text look like Python code (vs. a clarification question)?
+
+    Used as a fallback when the model produced code but forgot the @@CODE_START@@
+    markers. We require:
+      - at least one strong code pattern (import/def/class/return/assignment), AND
+      - the text does not look like a pure question (doesn't end with '?').
+    """
+    if not text.strip():
+        return False
+    has_pattern = any(p.search(text) for p in _CODE_PATTERNS)
+    is_question = text.strip().endswith("?")
+    return has_pattern and not is_question
 
 
 def parse_response(text: str) -> dict:
@@ -67,36 +100,55 @@ def parse_response(text: str) -> dict:
 
     Code extraction priority:
     1. @@CODE_START@@ / @@CODE_END@@ markers (instructed in system prompt)
-    2. First ```python ... ``` fence (fallback for non-compliant models)
+    2. First ```python ... ``` fence
     3. HTML <code>...</code> tags
-    4. Entire text (last resort)
+    4. Heuristic: text looks like Python code (def/import/etc. + not a question)
+    5. Empty (model produced no code — likely a clarification question)
+
+    The system prompt instructs models to wrap code in markers. When markers,
+    fences, and HTML tags are all absent, we use a regex heuristic to decide
+    whether the bare text is code-with-missing-markers or pure prose. This is
+    important for two reasons:
+      - AC detection: putting a question into `code` would cause SyntaxError
+        in the sandbox AND make the judge mis-label as SA/EA.
+      - Recovering forgotten-marker cases: avoids losing valid code on the
+        rare occasions when a model omits markers but writes valid code.
     """
     # 1. think_block: <think>...</think> (DeepSeek-R1, QwQ, etc.)
     think_match = re.search(r"<think>(.*?)</think>", text, re.DOTALL)
     think_block = think_match.group(1).strip() if think_match else ""
 
+    # Strip the think block before deciding code/prose split
+    body = text
+    if think_match:
+        body = body.replace(think_match.group(0), "")
+
     # 2. code extraction
-    marker_match = re.search(r"@@CODE_START@@(.*?)@@CODE_END@@", text, re.DOTALL)
+    marker_match = re.search(r"@@CODE_START@@(.*?)@@CODE_END@@", body, re.DOTALL)
+    fence_match = re.search(r"```python\s*(.*?)```", body, re.DOTALL)
+    html_match = re.search(r"<code>\s*(.*?)\s*</code>", body, re.DOTALL)
     if marker_match:
         code = marker_match.group(1).strip()
+    elif fence_match:
+        code = fence_match.group(1).strip()
+    elif html_match:
+        code = html_match.group(1).strip()
+    elif _looks_like_code(body):
+        code = body.strip()
     else:
-        fence_match = re.search(r"```python\s*(.*?)```", text, re.DOTALL)
-        if fence_match:
-            code = fence_match.group(1).strip()
-        else:
-            html_match = re.search(r"<code>\s*(.*?)\s*</code>", text, re.DOTALL)
-            code = html_match.group(1).strip() if html_match else text.strip()
+        code = ""
 
-    # 3. prose: everything outside think block and code section
-    stripped = text
-    if think_match:
-        stripped = stripped.replace(think_match.group(0), "")
+    # 3. prose: body minus the matched code section
+    stripped = body
     if marker_match:
         stripped = stripped.replace(marker_match.group(0), "")
-    else:
+    elif fence_match:
         stripped = re.sub(r"```python.*?```", "", stripped, flags=re.DOTALL)
+    elif html_match:
         stripped = re.sub(r"<code>.*?</code>", "", stripped, flags=re.DOTALL)
-    prose = stripped.strip()
+    # If we used the heuristic fallback, body == code, so prose is empty.
+    # If code is empty (pure prose), prose is the full body.
+    prose = stripped.strip() if (marker_match or fence_match or html_match or not code) else ""
 
     return {"think_block": think_block, "prose": prose, "code": code}
 
@@ -139,10 +191,13 @@ def evaluate_item(
                     config, prompt=item.perturbed_prompt, system=SYSTEM_PROMPT_DS1000
                 )
                 parsed = parse_response(resp.choices[0])
+                # test_a is harness format (expects __SOLUTION__);
+                # test_b is self-contained (defines its own data + asserts).
+                # Cannot pass __SOLUTION__ wrapper to test_b — it would be a
+                # bare string and the test's function calls would NameError.
                 wrapped = wrap_ds1000_solution(parsed["code"])
-                result_a, result_b = sandbox_ds1000.run_dual_blind(
-                    wrapped, item.test_a, item.test_b, timeout_s=60
-                )
+                result_a = sandbox_ds1000.run(wrapped, item.test_a, timeout_s=60)
+                result_b = sandbox_ds1000.run(parsed["code"], item.test_b, timeout_s=60)
             else:
                 resp = client.call(
                     config, prompt=item.perturbed_prompt, system=SYSTEM_PROMPT_MBPP
@@ -173,10 +228,30 @@ def evaluate_item(
 
         samples.append(sample)
 
+    # Aggregate counts (samples can satisfy 0, 1, or both tests)
     pass_a_count = sum(s["passed_a"] for s in samples)
     pass_b_count = sum(s["passed_b"] for s in samples)
+    pass_either_count = sum(s["passed_a"] or s["passed_b"] for s in samples)
+
+    # Mutually-exclusive 4-way decomposition — used to determine which
+    # interpretation the model "chose" on each sample:
+    #   chose_a:    code satisfies test_a only       -> model picked A
+    #   chose_b:    code satisfies test_b only       -> model picked B
+    #   pass_both:  code satisfies both tests        -> tests cannot distinguish
+    #   pass_neither: code satisfies neither         -> code error / wrong choice
+    chose_a_count = sum(s["passed_a"] and not s["passed_b"] for s in samples)
+    chose_b_count = sum(s["passed_b"] and not s["passed_a"] for s in samples)
+    pass_both_count = sum(s["passed_a"] and s["passed_b"] for s in samples)
     pass_neither_count = sum(
         not s["passed_a"] and not s["passed_b"] for s in samples
+    )
+    # Sanity: chose_a + chose_b + pass_both + pass_neither == n_samples
+
+    # Interpretation bias: of the samples that made a clear choice (A xor B),
+    # what fraction picked A? None when model never made a clear choice.
+    decisive = chose_a_count + chose_b_count
+    interp_a_bias = (
+        round(chose_a_count / decisive, 4) if decisive else None
     )
 
     return {
@@ -190,11 +265,23 @@ def evaluate_item(
         "interpretation_a": item.interpretation_a,
         "interpretation_b": item.interpretation_b,
         "n_samples": n_samples,
+        # Test-level counts (a sample can contribute to multiple)
         "pass_a_count": pass_a_count,
         "pass_b_count": pass_b_count,
-        "pass_neither_count": pass_neither_count,
+        "pass_either_count": pass_either_count,
         "pass_a_rate": round(pass_a_count / n_samples, 4) if n_samples else 0.0,
         "pass_b_rate": round(pass_b_count / n_samples, 4) if n_samples else 0.0,
+        "pass_either_rate": round(pass_either_count / n_samples, 4) if n_samples else 0.0,
+        # Choice decomposition (mutually exclusive, sums to n_samples)
+        "chose_a_count": chose_a_count,
+        "chose_b_count": chose_b_count,
+        "pass_both_count": pass_both_count,
+        "pass_neither_count": pass_neither_count,
+        "chose_a_rate": round(chose_a_count / n_samples, 4) if n_samples else 0.0,
+        "chose_b_rate": round(chose_b_count / n_samples, 4) if n_samples else 0.0,
+        "both_pass_rate": round(pass_both_count / n_samples, 4) if n_samples else 0.0,
+        "neither_rate": round(pass_neither_count / n_samples, 4) if n_samples else 0.0,
+        "interp_a_bias": interp_a_bias,
         "samples": samples,
     }
 
@@ -205,15 +292,29 @@ def evaluate_item(
 def print_summary(records: list[dict], model_id: str) -> None:
     total_a = sum(r["pass_a_count"] for r in records)
     total_b = sum(r["pass_b_count"] for r in records)
+    total_either = sum(r.get("pass_either_count", 0) for r in records)
+    total_chose_a = sum(r.get("chose_a_count", 0) for r in records)
+    total_chose_b = sum(r.get("chose_b_count", 0) for r in records)
+    total_both = sum(r.get("pass_both_count", 0) for r in records)
     total_neither = sum(r["pass_neither_count"] for r in records)
     total_samp = sum(r["n_samples"] for r in records)
 
     print(f"\n{'='*60}")
     print(f"Model:       {model_id}")
     print(f"Items:       {len(records)}")
-    print(f"pass@k(A):   {total_a/total_samp:.1%}  ({total_a}/{total_samp})")
-    print(f"pass@k(B):   {total_b/total_samp:.1%}  ({total_b}/{total_samp})")
-    print(f"neither:     {total_neither/total_samp:.1%}  ({total_neither}/{total_samp})")
+    print(f"\n── Test pass rates (a sample can satisfy both tests) ──")
+    print(f"pass@k(A):       {total_a/total_samp:.1%}  ({total_a}/{total_samp})")
+    print(f"pass@k(B):       {total_b/total_samp:.1%}  ({total_b}/{total_samp})")
+    print(f"pass@k(either):  {total_either/total_samp:.1%}  ({total_either}/{total_samp})")
+    print(f"\n── Choice decomposition (mutually exclusive, sums to 100%) ──")
+    print(f"chose A only:    {total_chose_a/total_samp:.1%}  ({total_chose_a}/{total_samp})")
+    print(f"chose B only:    {total_chose_b/total_samp:.1%}  ({total_chose_b}/{total_samp})")
+    print(f"both pass:       {total_both/total_samp:.1%}  ({total_both}/{total_samp})  (tests can't distinguish)")
+    print(f"neither pass:    {total_neither/total_samp:.1%}  ({total_neither}/{total_samp})  (code error or wrong choice)")
+    decisive = total_chose_a + total_chose_b
+    if decisive:
+        print(f"\nInterpretation bias (chose A / decisive): "
+              f"{total_chose_a/decisive:.1%}  ({total_chose_a}/{decisive})")
 
     print(f"\n── By source ──────────────────────────────────────────")
     for src in ["mbpp", "ds1000"]:

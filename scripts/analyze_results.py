@@ -27,6 +27,7 @@ import csv
 import json
 import sys
 from collections import defaultdict
+from math import comb
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -36,8 +37,54 @@ AMBIGUITY_TYPES = [
     "coreferential", "syntactic", "scopal",
     "collective_distributive", "elliptical",
 ]
-LABELS = ["SA", "EA", "AC", "unclassifiable"]
-LBL_COLORS = {"SA": "#EF5350", "EA": "#66BB6A", "AC": "#42A5F5", "unclassifiable": "#BDBDBD"}
+LABELS = ["SA", "EA", "AC", "unclassifiable", "error"]
+
+# pass@k values computed by default. k must satisfy k <= n_samples for every
+# item; values where n < k are silently skipped (with a printed warning).
+K_VALUES = [1, 3]
+
+
+def pass_at_k(n: int, c: int, k: int) -> float:
+    """Unbiased pass@k estimator (Chen et al., 2021, "Evaluating LLMs on Code").
+
+    Probability that at least one of k randomly drawn samples (without
+    replacement) from n total passes, given c of the n actually passed.
+
+        pass@k = 1 - C(n - c, k) / C(n, k)
+
+    Edge cases:
+      - c == 0          -> 0   (no successes possible)
+      - c == n          -> 1   (every sample passes)
+      - n - c < k       -> 1   (fewer than k failures, so at least one of any
+                                 k must succeed)
+      - k > n           -> raises ValueError (caller should pre-filter)
+    """
+    if k > n:
+        raise ValueError(f"pass@{k} requires n >= {k}, got n={n}")
+    if n - c < k:
+        return 1.0
+    return 1.0 - comb(n - c, k) / comb(n, k)
+
+
+def mean_pass_at_k(records: list[dict], count_field: str, k: int) -> float | None:
+    """Mean pass@k across items (per-item pass@k → average over items).
+
+    Returns None if any item has n_samples < k (cannot estimate).
+    """
+    if not records:
+        return None
+    if any(r["n_samples"] < k for r in records):
+        return None
+    return sum(
+        pass_at_k(r["n_samples"], r[count_field], k) for r in records
+    ) / len(records)
+LBL_COLORS = {
+    "SA": "#EF5350",
+    "EA": "#66BB6A",
+    "AC": "#42A5F5",
+    "unclassifiable": "#BDBDBD",
+    "error": "#000000",
+}
 
 # ── I/O helpers ───────────────────────────────────────────────────────────────
 
@@ -82,19 +129,106 @@ def auto_discover(results_dir: Path) -> dict[str, dict[str, Path]]:
 # ── Metric helpers ────────────────────────────────────────────────────────────
 
 
-def pass_rates(records: list[dict], key: str = "pass_count") -> tuple[float, int, int]:
-    """Return (rate, pass_count, total_samples) for baseline records."""
+def pass_rates(records: list[dict], key: str = "pass_count") -> dict[str, float | None]:
+    """Compute pass@k for baseline records.
+
+    Returns a dict with:
+      - rate           : aggregate c/n across all samples (== pass@1 estimate)
+      - pass_at_<k>    : per-item pass@k averaged across items, for k in K_VALUES
+    """
     total = sum(r["n_samples"] for r in records)
     passed = sum(r[key] for r in records)
-    return (passed / total if total else 0.0), passed, total
+    out: dict[str, float | None] = {
+        "rate": (passed / total if total else 0.0),
+    }
+    for k in K_VALUES:
+        out[f"pass_at_{k}"] = mean_pass_at_k(records, key, k)
+    return out
 
 
-def perturbed_rates(records: list[dict]) -> tuple[float, float]:
-    """Return (pass_a_rate, pass_b_rate) across all perturbed records."""
+def perturbed_rates(records: list[dict]) -> dict[str, float]:
+    """Compute aggregate pass / choice rates across all perturbed records.
+
+    Returns a dict with:
+      - pass_a_rate / pass_b_rate / pass_either_rate
+            test-level pass rates (a sample can contribute to multiple).
+      - chose_a_rate / chose_b_rate / both_pass_rate / neither_rate
+            mutually-exclusive choice decomposition (sums to 1):
+              chose_a:   passed_a only -> model picked A
+              chose_b:   passed_b only -> model picked B
+              both_pass: tests cannot distinguish (don't use for bias)
+              neither:   code failed both
+      - interp_a_bias = chose_a / (chose_a + chose_b), or None if no decisive
+            samples — what fraction of decisive samples picked A.
+
+    Falls back to deriving from samples for legacy files missing aggregate fields.
+    """
     total = sum(r["n_samples"] for r in records)
-    a = sum(r["pass_a_count"] for r in records)
-    b = sum(r["pass_b_count"] for r in records)
-    return (a / total if total else 0.0), (b / total if total else 0.0)
+    if not total:
+        return {
+            "pass_a_rate": 0.0, "pass_b_rate": 0.0, "pass_either_rate": 0.0,
+            "chose_a_rate": 0.0, "chose_b_rate": 0.0,
+            "both_pass_rate": 0.0, "neither_rate": 0.0,
+            "interp_a_bias": None,
+        }
+
+    pass_a = sum(r["pass_a_count"] for r in records)
+    pass_b = sum(r["pass_b_count"] for r in records)
+    chose_a = chose_b = both = 0
+    pass_either = 0
+    # For pass@k we also need per-item counts of each event. Backfill missing
+    # aggregate fields onto records so pass_at_k() can work uniformly.
+    for r in records:
+        if "chose_a_count" in r:
+            chose_a += r["chose_a_count"]
+            chose_b += r["chose_b_count"]
+            both += r.get("pass_both_count", 0)
+            pass_either += r.get("pass_either_count", 0)
+        else:
+            ca = cb = bo = pe = 0
+            for s in r.get("samples", []):
+                pa, pb = s.get("passed_a"), s.get("passed_b")
+                if pa and pb:
+                    bo += 1
+                elif pa:
+                    ca += 1
+                elif pb:
+                    cb += 1
+                if pa or pb:
+                    pe += 1
+            r["chose_a_count"] = ca
+            r["chose_b_count"] = cb
+            r["pass_both_count"] = bo
+            r["pass_either_count"] = pe
+            chose_a += ca
+            chose_b += cb
+            both += bo
+            pass_either += pe
+    neither = total - chose_a - chose_b - both
+    decisive = chose_a + chose_b
+
+    out: dict[str, float | None] = {
+        # Test-level pass rates (aggregate c/n; equivalent to pass@1 estimator)
+        "pass_a_rate": pass_a / total,
+        "pass_b_rate": pass_b / total,
+        "pass_either_rate": pass_either / total,
+        # Choice decomposition
+        "chose_a_rate": chose_a / total,
+        "chose_b_rate": chose_b / total,
+        "both_pass_rate": both / total,
+        "neither_rate": neither / total,
+        "interp_a_bias": (chose_a / decisive) if decisive else None,
+    }
+
+    # Unbiased pass@k for k in K_VALUES (per-item average; None if any n < k).
+    for k in K_VALUES:
+        out[f"pass_a_at_{k}"] = mean_pass_at_k(records, "pass_a_count", k)
+        out[f"pass_b_at_{k}"] = mean_pass_at_k(records, "pass_b_count", k)
+        out[f"pass_either_at_{k}"] = mean_pass_at_k(records, "pass_either_count", k)
+        out[f"chose_a_at_{k}"] = mean_pass_at_k(records, "chose_a_count", k)
+        out[f"chose_b_at_{k}"] = mean_pass_at_k(records, "chose_b_count", k)
+
+    return out
 
 
 def label_distribution(classified: list[dict]) -> dict[str, float]:
@@ -163,8 +297,19 @@ def label_by_correctness(classified: list[dict]) -> dict[str, dict[str, float]]:
     return result
 
 
+def _item_pass_either_rate(record: dict) -> float:
+    """Get pass_either_rate from a perturbed record, falling back to samples."""
+    if "pass_either_rate" in record:
+        return record["pass_either_rate"]
+    samples = record.get("samples", [])
+    if not samples:
+        return 0.0
+    either = sum(1 for s in samples if s.get("passed_a") or s.get("passed_b"))
+    return either / len(samples)
+
+
 def compute_tax_by_type(data: dict) -> dict[str, float]:
-    """Return {ambiguity_type: avg_tax_pp} for one model's data dict."""
+    """Return {ambiguity_type: avg_tax_pp} based on pass_either (per-item, then mean)."""
     perturbed = data.get("perturbed_records", [])
     baseline = data.get("baseline_records", [])
     if not perturbed or not baseline:
@@ -177,7 +322,7 @@ def compute_tax_by_type(data: dict) -> dict[str, float]:
             amb = r.get("ambiguity_type", "")
             if amb:
                 type_taxes[amb].append(
-                    (b.get("pass_rate", 0) - r.get("pass_a_rate", 0)) * 100
+                    (b.get("pass_rate", 0) - _item_pass_either_rate(r)) * 100
                 )
     return {amb: sum(v) / len(v) for amb, v in type_taxes.items()}
 
@@ -199,16 +344,68 @@ def save_metrics(runs: dict[str, dict], results_dir: Path) -> None:
     for model, data in runs.items():
         baseline_rate = data.get("baseline_rate")
         perturbed_a = data.get("perturbed_a_rate")
-        tax_pp = (
+        perturbed_b = data.get("perturbed_b_rate")
+        perturbed_either = data.get("perturbed_either_rate")
+
+        # Primary Ambiguity Tax: baseline - pass_either
+        # (a sample is "successful" if it passes EITHER interpretation, since
+        # both are valid given the ambiguous prompt). Falls back to pass_a if
+        # pass_either is unavailable (e.g. legacy results file).
+        if baseline_rate is not None and perturbed_either is not None:
+            tax_pp = (baseline_rate - perturbed_either) * 100
+        elif baseline_rate is not None and perturbed_a is not None:
+            tax_pp = (baseline_rate - perturbed_a) * 100
+        else:
+            tax_pp = None
+
+        # Conditional pass@k: how often the model produced code matching each
+        # interpretation. tax_a_pp / tax_b_pp report the per-interpretation tax.
+        tax_a_pp = (
             (baseline_rate - perturbed_a) * 100
             if baseline_rate is not None and perturbed_a is not None
             else None
         )
+        tax_b_pp = (
+            (baseline_rate - perturbed_b) * 100
+            if baseline_rate is not None and perturbed_b is not None
+            else None
+        )
+
+        # Unbiased pass@k metrics + corresponding tax (uses pass_either as
+        # primary "pass" definition under ambiguity).
+        pass_at_k_metrics: dict[str, float | None] = {}
+        for k in K_VALUES:
+            base_k = data.get(f"baseline_pass_at_{k}")
+            either_k = data.get(f"pass_either_at_{k}")
+            pass_at_k_metrics[f"baseline_pass_at_{k}"] = base_k
+            pass_at_k_metrics[f"pass_a_at_{k}"] = data.get(f"pass_a_at_{k}")
+            pass_at_k_metrics[f"pass_b_at_{k}"] = data.get(f"pass_b_at_{k}")
+            pass_at_k_metrics[f"pass_either_at_{k}"] = either_k
+            pass_at_k_metrics[f"chose_a_at_{k}"] = data.get(f"chose_a_at_{k}")
+            pass_at_k_metrics[f"chose_b_at_{k}"] = data.get(f"chose_b_at_{k}")
+            pass_at_k_metrics[f"ambiguity_tax_at_{k}_pp"] = (
+                (base_k - either_k) * 100
+                if base_k is not None and either_k is not None
+                else None
+            )
+
         existing[model] = {
             "baseline_rate": baseline_rate,
+            # Test-level pass rates (aggregate; equivalent to pass@1)
             "perturbed_a_rate": perturbed_a,
-            "perturbed_b_rate": data.get("perturbed_b_rate"),
+            "perturbed_b_rate": perturbed_b,
+            "perturbed_either_rate": perturbed_either,
             "ambiguity_tax_pp": tax_pp,
+            "tax_a_pp": tax_a_pp,
+            "tax_b_pp": tax_b_pp,
+            # Choice decomposition (mutually exclusive, sums to 1)
+            "chose_a_rate": data.get("chose_a_rate"),
+            "chose_b_rate": data.get("chose_b_rate"),
+            "both_pass_rate": data.get("both_pass_rate"),
+            "neither_rate": data.get("neither_rate"),
+            "interp_a_bias": data.get("interp_a_bias"),
+            # Unbiased pass@k metrics for k in K_VALUES
+            **pass_at_k_metrics,
             "label_dist": data.get("label_dist", {}),
             "label_by_risk": data.get("label_by_risk", {}),
             "tax_by_type": compute_tax_by_type(data),
@@ -219,6 +416,19 @@ def save_metrics(runs: dict[str, dict], results_dir: Path) -> None:
         json.dump(existing, f, indent=2)
     print(f"Saved metrics JSON: {summary_path}")
 
+    # pass@k field names, ordered for stable CSV columns
+    pass_at_k_fields: list[str] = []
+    for k in K_VALUES:
+        pass_at_k_fields.extend([
+            f"baseline_pass_at_{k}",
+            f"pass_a_at_{k}",
+            f"pass_b_at_{k}",
+            f"pass_either_at_{k}",
+            f"chose_a_at_{k}",
+            f"chose_b_at_{k}",
+            f"ambiguity_tax_at_{k}_pp",
+        ])
+
     # Write CSV (one row per model, flat fields only)
     csv_rows = []
     for model, m in existing.items():
@@ -227,8 +437,18 @@ def save_metrics(runs: dict[str, dict], results_dir: Path) -> None:
             "baseline_rate": m.get("baseline_rate", ""),
             "perturbed_a_rate": m.get("perturbed_a_rate", ""),
             "perturbed_b_rate": m.get("perturbed_b_rate", ""),
+            "perturbed_either_rate": m.get("perturbed_either_rate", ""),
             "ambiguity_tax_pp": m.get("ambiguity_tax_pp", ""),
+            "tax_a_pp": m.get("tax_a_pp", ""),
+            "tax_b_pp": m.get("tax_b_pp", ""),
+            "chose_a_rate": m.get("chose_a_rate", ""),
+            "chose_b_rate": m.get("chose_b_rate", ""),
+            "both_pass_rate": m.get("both_pass_rate", ""),
+            "neither_rate": m.get("neither_rate", ""),
+            "interp_a_bias": m.get("interp_a_bias", ""),
         }
+        for f in pass_at_k_fields:
+            row[f] = m.get(f, "")
         for lbl in LABELS:
             row[lbl] = m.get("label_dist", {}).get(lbl, "")
         for amb in AMBIGUITY_TYPES:
@@ -236,7 +456,22 @@ def save_metrics(runs: dict[str, dict], results_dir: Path) -> None:
         csv_rows.append(row)
 
     fieldnames = (
-        ["model", "baseline_rate", "perturbed_a_rate", "perturbed_b_rate", "ambiguity_tax_pp"]
+        [
+            "model",
+            "baseline_rate",
+            "perturbed_a_rate",
+            "perturbed_b_rate",
+            "perturbed_either_rate",
+            "ambiguity_tax_pp",
+            "tax_a_pp",
+            "tax_b_pp",
+            "chose_a_rate",
+            "chose_b_rate",
+            "both_pass_rate",
+            "neither_rate",
+            "interp_a_bias",
+        ]
+        + pass_at_k_fields
         + LABELS
         + [f"tax_{a}_pp" for a in AMBIGUITY_TYPES]
     )
@@ -250,10 +485,41 @@ def save_metrics(runs: dict[str, dict], results_dir: Path) -> None:
 # ── Table printing ────────────────────────────────────────────────────────────
 
 
+def print_pass_at_k_table(runs: dict[str, dict]) -> None:
+    """Show unbiased pass@k (Chen et al. 2021) for each k in K_VALUES."""
+    cols = ["Clean", "Pert-A", "Pert-B", "Pert-Either", "Tax(pp)"]
+    for k in K_VALUES:
+        header_cols = "  ".join(f"{c:>10}" for c in cols)
+        header = f"{'Model':<22} {header_cols}"
+        print(f"\n{'='*len(header)}")
+        print(f"Table — pass@{k} (unbiased estimator)  "
+              f"Tax = baseline − pass_either, both at @{k}")
+        print(f"{'='*len(header)}")
+        print(header)
+        print("-" * len(header))
+        for model, data in sorted(runs.items()):
+            base = data.get(f"baseline_pass_at_{k}")
+            pa = data.get(f"pass_a_at_{k}")
+            pb = data.get(f"pass_b_at_{k}")
+            pe = data.get(f"pass_either_at_{k}")
+            tax = (base - pe) * 100 if base is not None and pe is not None else None
+            cells = [
+                f"{base:.1%}" if base is not None else "—",
+                f"{pa:.1%}" if pa is not None else "—",
+                f"{pb:.1%}" if pb is not None else "—",
+                f"{pe:.1%}" if pe is not None else "—",
+                f"{tax:+.1f}" if tax is not None else "—",
+            ]
+            print(f"  {model:<20} " + "  ".join(f"{c:>10}" for c in cells))
+
+
 def print_ambiguity_tax_table(runs: dict[str, dict]) -> None:
-    header = f"{'Model':<22} {'Clean':>8} {'Pert-A':>8} {'Pert-B':>8} {'Tax(pp)':>9}"
+    header = (
+        f"{'Model':<22} {'Clean':>8} {'Pert-A':>8} {'Pert-B':>8} "
+        f"{'Pert-Either':>12} {'Tax(pp)':>9}"
+    )
     print(f"\n{'='*len(header)}")
-    print("Table 1 — Ambiguity Tax")
+    print("Table 1 — Ambiguity Tax  (Tax = Clean − Pert-Either)")
     print(f"{'='*len(header)}")
     print(header)
     print("-" * len(header))
@@ -261,20 +527,56 @@ def print_ambiguity_tax_table(runs: dict[str, dict]) -> None:
         clean_r = data.get("baseline_rate", float("nan"))
         pert_a = data.get("perturbed_a_rate", float("nan"))
         pert_b = data.get("perturbed_b_rate", float("nan"))
-        tax = (clean_r - pert_a) * 100 if not (
-            clean_r != clean_r or pert_a != pert_a
-        ) else float("nan")
+        pert_e = data.get("perturbed_either_rate", float("nan"))
+        # Primary tax uses pass_either; falls back to pass_a if either is unavailable
+        if pert_e == pert_e and clean_r == clean_r:
+            tax = (clean_r - pert_e) * 100
+        elif pert_a == pert_a and clean_r == clean_r:
+            tax = (clean_r - pert_a) * 100
+        else:
+            tax = float("nan")
         clean_s = f"{clean_r:.1%}" if clean_r == clean_r else "—"
         a_s = f"{pert_a:.1%}" if pert_a == pert_a else "—"
         b_s = f"{pert_b:.1%}" if pert_b == pert_b else "—"
+        e_s = f"{pert_e:.1%}" if pert_e == pert_e else "—"
         tax_s = f"{tax:+.1f}" if tax == tax else "—"
-        print(f"  {model:<20} {clean_s:>8} {a_s:>8} {b_s:>8} {tax_s:>9}")
+        print(f"  {model:<20} {clean_s:>8} {a_s:>8} {b_s:>8} {e_s:>12} {tax_s:>9}")
+
+
+def print_interpretation_choice_table(runs: dict[str, dict]) -> None:
+    """Show the mutually-exclusive 4-way choice decomposition + interp bias."""
+    header = (
+        f"{'Model':<22} {'Chose-A':>8} {'Chose-B':>8} "
+        f"{'Both':>7} {'Neither':>8} {'A-bias':>8}"
+    )
+    print(f"\n{'='*len(header)}")
+    print("Table — Interpretation Choice  "
+          "(mutually exclusive; A-bias = chose_a / decisive)")
+    print(f"{'='*len(header)}")
+    print(header)
+    print("-" * len(header))
+    for model, data in sorted(runs.items()):
+        ca = data.get("chose_a_rate")
+        cb = data.get("chose_b_rate")
+        if ca is None or cb is None:
+            continue
+        both = data.get("both_pass_rate", 0)
+        neither = data.get("neither_rate", 0)
+        bias = data.get("interp_a_bias")
+        bias_s = f"{bias:.1%}" if bias is not None else "—"
+        print(
+            f"  {model:<20} {ca:>7.1%} {cb:>7.1%} {both:>6.1%} "
+            f"{neither:>7.1%} {bias_s:>8}"
+        )
 
 
 def print_sa_ea_ac_table(runs: dict[str, dict]) -> None:
-    header = f"{'Model':<22} {'SA':>7} {'EA':>7} {'AC':>7} {'Unclass':>9}"
+    header = (
+        f"{'Model':<22} {'SA':>7} {'EA':>7} {'AC':>7} {'Unclass':>9} {'Error':>7}"
+    )
     print(f"\n{'='*len(header)}")
-    print("Table 2 — Behavioral Label Distribution")
+    print("Table 2 — Behavioral Label Distribution  "
+          "(Error = judge LLM call failed)")
     print(f"{'='*len(header)}")
     print(header)
     print("-" * len(header))
@@ -286,7 +588,8 @@ def print_sa_ea_ac_table(runs: dict[str, dict]) -> None:
         ea = f"{dist.get('EA', 0):.1%}"
         ac = f"{dist.get('AC', 0):.1%}"
         uc = f"{dist.get('unclassifiable', 0):.1%}"
-        print(f"  {model:<20} {sa:>7} {ea:>7} {ac:>7} {uc:>9}")
+        er = f"{dist.get('error', 0):.1%}"
+        print(f"  {model:<20} {sa:>7} {ea:>7} {ac:>7} {uc:>9} {er:>7}")
 
 
 def print_label_correctness_table(runs: dict[str, dict]) -> None:
@@ -348,39 +651,43 @@ def save_plots(runs: dict[str, dict], output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     models = sorted(runs.keys())
 
-    # ── Plot: pass@k(A) vs pass@k(B) per model (keep for reference) ──────────
-    fig, ax = plt.subplots(figsize=(max(6, len(models) * 1.4), 4))
+    # ── Plot: pass@k(A) vs pass@k(B) vs pass@k(either) per model ──────────────
+    fig, ax = plt.subplots(figsize=(max(6, len(models) * 1.6), 4))
     x = np.arange(len(models))
     a_rates = [runs[m].get("perturbed_a_rate", 0) for m in models]
     b_rates = [runs[m].get("perturbed_b_rate", 0) for m in models]
+    either_rates = [runs[m].get("perturbed_either_rate", 0) for m in models]
     clean_rates = [runs[m].get("baseline_rate", None) for m in models]
-    width = 0.3
-    ax.bar(x - width / 2, a_rates, width, label="pass@k(A)", color="#2196F3")
-    ax.bar(x + width / 2, b_rates, width, label="pass@k(B)", color="#FF9800")
+    width = 0.25
+    ax.bar(x - width, a_rates, width, label="pass@k(A)", color="#2196F3")
+    ax.bar(x, b_rates, width, label="pass@k(B)", color="#FF9800")
+    ax.bar(x + width, either_rates, width, label="pass@k(either)", color="#4CAF50")
     for xi, cr in zip(x, clean_rates):
         if cr is not None:
             ax.axhline(y=cr, xmin=(xi - 0.5) / len(models),
                        xmax=(xi + 0.5) / len(models),
-                       color="green", linewidth=1.5, linestyle="--")
+                       color="black", linewidth=1.2, linestyle="--")
     ax.set_xticks(x)
     ax.set_xticklabels(models, rotation=15, ha="right")
     ax.set_ylabel("Pass Rate")
-    ax.set_title("pass@k(A) vs pass@k(B) by Model\n(dashed = clean baseline)")
+    ax.set_title("Conditional pass@k(A) / pass@k(B) / pass@k(either) by Model\n(dashed = clean baseline)")
     ax.legend()
     ax.set_ylim(0, 1.05)
     plt.tight_layout()
     _save(plt, output_dir / "plot_pass_rates.png")
 
-    # ── Plot E: Ambiguity Tax per model (one bar per model) ───────────────────
+    # ── Plot E: Ambiguity Tax per model (uses pass@k(either)) ─────────────────
+    # Tax = baseline - pass_either: code is "successful" if it satisfies EITHER
+    # interpretation (since both are valid given the ambiguous prompt).
     models_with_both = [
         m for m in models
         if runs[m].get("baseline_rate") is not None
-        and runs[m].get("perturbed_a_rate") is not None
+        and runs[m].get("perturbed_either_rate") is not None
     ]
     if models_with_both:
         fig, ax = plt.subplots(figsize=(max(5, len(models_with_both) * 1.4), 4))
         taxes = [
-            (runs[m]["baseline_rate"] - runs[m]["perturbed_a_rate"]) * 100
+            (runs[m]["baseline_rate"] - runs[m]["perturbed_either_rate"]) * 100
             for m in models_with_both
         ]
         bar_colors = ["#EF5350" if t >= 0 else "#42A5F5" for t in taxes]
@@ -390,7 +697,7 @@ def save_plots(runs: dict[str, dict], output_dir: Path) -> None:
         ax.set_xticks(xm)
         ax.set_xticklabels(models_with_both, rotation=15, ha="right")
         ax.set_ylabel("Ambiguity Tax (pp)")
-        ax.set_title("Ambiguity Tax by Model\n(baseline pass@k − perturbed pass@k(A))")
+        ax.set_title("Ambiguity Tax by Model\n(baseline pass@k − perturbed pass@k(either))")
         plt.tight_layout()
         _save(plt, output_dir / "plot_ambiguity_tax_all_models.png")
 
@@ -458,7 +765,10 @@ def save_plots(runs: dict[str, dict], output_dir: Path) -> None:
             ax.set_xticklabels(labels_x, rotation=90, fontsize=6)
             ax.set_xlabel("Item")
             ax.set_ylabel("Δ pass@k (pp)")
-            ax.set_title(f"{model}\nper-item pass@k delta\n(red=hurt, blue=helped)")
+            ax.set_title(
+                f"{model}\nper-item Δ pass@k = clean − pass@k(either)\n"
+                f"(red=hurt, blue=helped)"
+            )
         plt.tight_layout()
         _save(plt, output_dir / "plot_delta_per_item.png")
 
@@ -629,15 +939,29 @@ def main() -> None:
 
         if files.get("baseline") and files["baseline"].exists():
             recs = load_jsonl(files["baseline"])
-            rate, _, _ = pass_rates(recs, key="pass_count")
-            data["baseline_rate"] = rate
+            br = pass_rates(recs, key="pass_count")
+            data["baseline_rate"] = br["rate"]
+            for k in K_VALUES:
+                data[f"baseline_pass_at_{k}"] = br[f"pass_at_{k}"]
             data["baseline_records"] = recs
 
         if files.get("perturbed") and files["perturbed"].exists():
             recs = load_jsonl(files["perturbed"])
-            a_rate, b_rate = perturbed_rates(recs)
-            data["perturbed_a_rate"] = a_rate
-            data["perturbed_b_rate"] = b_rate
+            rates = perturbed_rates(recs)
+            # Aggregate (== pass@1) rates
+            data["perturbed_a_rate"] = rates["pass_a_rate"]
+            data["perturbed_b_rate"] = rates["pass_b_rate"]
+            data["perturbed_either_rate"] = rates["pass_either_rate"]
+            data["chose_a_rate"] = rates["chose_a_rate"]
+            data["chose_b_rate"] = rates["chose_b_rate"]
+            data["both_pass_rate"] = rates["both_pass_rate"]
+            data["neither_rate"] = rates["neither_rate"]
+            data["interp_a_bias"] = rates["interp_a_bias"]
+            # Unbiased pass@k for each k in K_VALUES
+            for k in K_VALUES:
+                for field in ("pass_a", "pass_b", "pass_either",
+                              "chose_a", "chose_b"):
+                    data[f"{field}_at_{k}"] = rates.get(f"{field}_at_{k}")
             data["perturbed_records"] = recs
 
         if files.get("classified") and files["classified"].exists():
@@ -653,10 +977,17 @@ def main() -> None:
             for r in data["perturbed_records"]:
                 b = baseline_map.get(r["task_id"])
                 if b:
+                    either_rate = _item_pass_either_rate(r)
                     per_item.append({
                         "task_id": r["task_id"],
-                        "delta": b.get("pass_rate", 0) - r.get("pass_a_rate", 0),
+                        # Primary delta: baseline - pass_either (model produced
+                        # valid code for at least one interpretation).
+                        "delta": b.get("pass_rate", 0) - either_rate,
+                        "delta_a": b.get("pass_rate", 0) - r.get("pass_a_rate", 0),
+                        "delta_b": b.get("pass_rate", 0) - r.get("pass_b_rate", 0),
+                        "pass_a_rate": r.get("pass_a_rate", 0),
                         "pass_b_rate": r.get("pass_b_rate", 0),
+                        "pass_either_rate": either_rate,
                         "ambiguity_type": r.get("ambiguity_type", ""),
                         "risk_level": r.get("risk_level", ""),
                     })
@@ -674,6 +1005,8 @@ def main() -> None:
     models_with_labels = [m for m in runs if "label_dist" in runs[m]]
     if models_with_perturbed:
         print_ambiguity_tax_table(runs)
+        print_pass_at_k_table(runs)
+        print_interpretation_choice_table(runs)
         print_perturbed_by_type(runs)
     if models_with_labels:
         print_sa_ea_ac_table(runs)
