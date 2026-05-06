@@ -1,0 +1,188 @@
+Benchmark items to evaluate: 48
+Model:       google/gemini-3.1-pro-preview
+Temperature: 0.8  |  n_samples: 5
+
+[ 1/48] AMBI/001  (mbpp, collective_distributive, low)...  PARTIAL 1/5  (94.4s)
+         ↳ SyntaxError: invalid syntax
+[ 2/48] AMBI/002  (mbpp, syntactic, high)...  PASS  (52.2s)
+[ 3/48] AMBI/003  (mbpp, collective_distributive, low)...  FAIL  (56.7s)
+         ↳ AssertionError
+[ 4/48] AMBI/004  (mbpp, collective_distributive, low)...  PASS  (71.0s)
+[ 5/48] AMBI/005  (mbpp, coreferential, low)...  FAIL  (90.9s)
+         ↳ SyntaxError: invalid syntax
+[ 6/48] AMBI/006  (mbpp, collective_distributive, low)...  FAIL  (89.3s)
+         ↳ SyntaxError: invalid syntax
+[ 7/48] AMBI/007  (mbpp, collective_distributive, low)...  PASS  (29.7s)
+[ 8/48] AMBI/008  (mbpp, collective_distributive, low)...  PASS  (41.1s)
+[ 9/48] AMBI/009  (mbpp, syntactic, low)...  PARTIAL 4/5  (80.3s)
+         ↳ SyntaxError: invalid syntax
+[10/48] AMBI/010  (mbpp, collective_distributive, low)...  FAIL  (27.9s)
+         ↳     return tuple(x
+[11/48] AMBI/011  (mbpp, syntactic, low)...  PARTIAL 4/5  (83.5s)
+         ↳ SyntaxError: unterminated triple-quoted string literal (detected at line 12)
+[12/48] AMBI/013  (mbpp, collective_distributive, low)...  PASS  (79.5s)
+[13/48] AMBI/014  (mbpp, collective_distributive, low)...  PARTIAL 3/5  (66.0s)
+         ↳ SyntaxError: invalid syntax
+[14/48] AMBI/015  (ds1000, coreferential, low)...  FAIL  (91.5s)
+         ↳ SyntaxError: unmatched ')'
+[15/48] AMBI/016  (ds1000, coreferential, low)...  FAIL  (93.5s)
+         ↳ SyntaxError: invalid syntax
+[16/48] AMBI/017  (ds1000, coreferential, low)...  PARTIAL 1/5  (88.2s)
+         ↳ SyntaxError: invalid syntax
+[17/48] AMBI/019  (ds1000, coreferential, low)...  PASS  (60.1s)
+[18/48] AMBI/020  (ds1000, coreferential, low)...  FAIL  (94.2s)
+         ↳ SyntaxError: invalid syntax
+[19/48] AMBI/021  (ds1000, coreferential, low)...  FAIL  (94.1s)
+         ↳ SyntaxError: invalid syntax
+[20/48] AMBI/022  (ds1000, coreferential, high)...  FAIL  (92.5s)
+         ↳ SyntaxError: invalid syntax
+[21/48] AMBI/023  (ds1000, coreferential, high)...  FAIL  (88.6s)
+         ↳ KeyError: 'result'
+[22/48] AMBI/024  (ds1000, coreferential, high)...  FAIL  (95.8s)
+         ↳ SyntaxError: unterminated string literal (detected at line 5)
+[23/48] AMBI/025  (mbpp, syntactic, low)...  FAIL  (88.1s)
+         ↳ SyntaxError: unterminated triple-quoted string literal (detected at line 15)
+[24/48] AMBI/026  (ds1000, syntactic, low)...  PARTIAL 4/5  (86.6s)
+         ↳ KeyError: 'result'
+[25/48] AMBI/030  (ds1000, syntactic, low)...  PARTIAL 2/5  (77.7s)
+         ↳ SyntaxError: invalid syntax
+[26/48] AMBI/031  (ds1000, syntactic, low)...  FAIL  (81.9s)
+         ↳ SyntaxError: unterminated string literal (detected at line 8)
+[27/48] AMBI/033  (ds1000, syntactic, high)...  FAIL  (83.4s)
+         ↳ SyntaxError: invalid syntax
+[28/48] AMBI/034  (ds1000, syntactic, high)...  FAIL  (88.1s)
+         ↳   File "<string>",
+[29/48] AMBI/035  (mbpp, scopal, low)...  PARTIAL 2/5  (73.5s)
+         ↳ SyntaxError: invalid syntax
+[30/48] AMBI/036  (ds1000, scopal, low)...  PASS  (56.6s)
+[31/48] AMBI/038  (ds1000, scopal, low)...  PARTIAL 3/5  (82.3s)
+         ↳ NameError: name 'nums' is not defined
+[32/48] AMBI/039  (mbpp, scopal, low)...  PARTIAL 4/5  (78.8s)
+         ↳ SyntaxError: invalid syntax
+[33/48] AMBI/040  (ds1000, scopal, high)...  PASS  (77.4s)
+[34/48] AMBI/042  (ds1000, scopal, high)...  PARTIAL 1/5  (79.4s)
+         ↳ SyntaxError: invalid syntax
+[35/48] AMBI/043  (ds1000, collective_distributive, low)...  FAIL  (80.6s)
+         ↳ SyntaxError: invalid syntax
+[36/48] AMBI/047  (ds1000, collective_distributive, low)...  PARTIAL 3/5  (82.4s)
+         ↳ SyntaxError: invalid syntax
+[37/48] AMBI/048  (mbpp, collective_distributive, low)...  PASS  (59.5s)
+[38/48] AMBI/049  (ds1000, collective_distributive, low)...  PASS  (53.6s)
+[39/48] AMBI/051  (ds1000, collective_distributive, high)...  FAIL  (84.9s)
+         ↳   File "/sandbox/run.py", line 79, in t
+[40/48] AMBI/052  (ds1000, collective_distributive, high)...  FAIL  (82.7s)
+         ↳ NameError: name 'new_features' is not defined
+[41/48] AMBI/054  (mbpp, elliptical, low)...  PASS  (32.2s)
+[42/48] AMBI/056  (ds1000, elliptical, low)...  FAIL  (86.8s)
+         ↳ SyntaxError: unterminated string literal (detected at line 7)
+[43/48] AMBI/057  (ds1000, elliptical, low)...  FAIL  (83.0s)
+         ↳ SyntaxError: invalid syntax
+[44/48] AMBI/058  (ds1000, elliptical, low)...  PASS  (53.5s)
+[45/48] AMBI/060  (ds1000, elliptical, high)...  FAIL  (88.3s)
+         ↳ SyntaxError: unterminated string literal (detected at line 11)
+[46/48] AMBI/062  (mbpp, elliptical, high)...  FAIL  (95.5s)
+         ↳ AssertionError
+[47/48] AMBI/063  (humaneval, scopal, low)...  FAIL  (82.4s)
+         ↳ SyntaxError: invalid syntax
+[48/48] AMBI/064  (humaneval, scopal, low)...  PASS  (36.2s)
+
+=======================================================
+Model:        google/gemini-3.1-pro-preview
+Items:        48
+Aggregate pass rate: 40.4%  (97/240)
+pass@1 (unbiased):    40.4%
+pass@3 (unbiased):    49.2%
+
+── By source ──────────────────────────────
+  mbpp      55.8%  (53/95)  [19 items]
+  ds1000    28.9%  (39/135)  [27 items]
+
+── By ambiguity type ──────────────────────
+  coreferential              12.0%  (6/50)
+  syntactic                  42.2%  (19/45)
+  scopal                     62.5%  (25/40)
+  collective_distributive    49.3%  (37/75)
+  elliptical                 33.3%  (10/30)
+
+── By risk level ──────────────────────────
+  low    47.8%  (86/180)
+  high   18.3%  (11/60)
+
+── Per-item results ───────────────────────
+  ~ AMBI/001    1/5  (mbpp, collective_d)  ← SyntaxError: invalid syntax
+  ✓ AMBI/002    5/5  (mbpp, syntactic)
+  ✗ AMBI/003    0/5  (mbpp, collective_d)  ← AssertionError
+  ✓ AMBI/004    5/5  (mbpp, collective_d)
+  ✗ AMBI/005    0/5  (mbpp, coreferentia)  ← SyntaxError: invalid syntax
+  ✗ AMBI/006    0/5  (mbpp, collective_d)  ← SyntaxError: invalid syntax
+  ✓ AMBI/007    5/5  (mbpp, collective_d)
+  ✓ AMBI/008    5/5  (mbpp, collective_d)
+  ~ AMBI/009    4/5  (mbpp, syntactic)  ← SyntaxError: invalid syntax
+  ✗ AMBI/010    0/5  (mbpp, collective_d)  ←     return tuple(x
+  ~ AMBI/011    4/5  (mbpp, syntactic)  ← SyntaxError: unterminated triple-quoted string literal (dete
+  ✓ AMBI/013    5/5  (mbpp, collective_d)
+  ~ AMBI/014    3/5  (mbpp, collective_d)  ← SyntaxError: invalid syntax
+  ✗ AMBI/015    0/5  (ds1000, coreferentia)  ← SyntaxError: unmatched ')'
+  ✗ AMBI/016    0/5  (ds1000, coreferentia)  ← SyntaxError: invalid syntax
+  ~ AMBI/017    1/5  (ds1000, coreferentia)  ← SyntaxError: invalid syntax
+  ✓ AMBI/019    5/5  (ds1000, coreferentia)
+  ✗ AMBI/020    0/5  (ds1000, coreferentia)  ← SyntaxError: invalid syntax
+  ✗ AMBI/021    0/5  (ds1000, coreferentia)  ← SyntaxError: invalid syntax
+  ✗ AMBI/022    0/5  (ds1000, coreferentia)  ← SyntaxError: invalid syntax
+  ✗ AMBI/023    0/5  (ds1000, coreferentia)  ← KeyError: 'result'
+  ✗ AMBI/024    0/5  (ds1000, coreferentia)  ← SyntaxError: unterminated string literal (detected at line 5
+  ✗ AMBI/025    0/5  (mbpp, syntactic)  ← SyntaxError: unterminated triple-quoted string literal (dete
+  ~ AMBI/026    4/5  (ds1000, syntactic)  ← KeyError: 'result'
+  ~ AMBI/030    2/5  (ds1000, syntactic)  ← SyntaxError: invalid syntax
+  ✗ AMBI/031    0/5  (ds1000, syntactic)  ← SyntaxError: unterminated string literal (detected at line 8
+  ✗ AMBI/033    0/5  (ds1000, syntactic)  ← SyntaxError: invalid syntax
+  ✗ AMBI/034    0/5  (ds1000, syntactic)  ←   File "<string>",
+  ~ AMBI/035    2/5  (mbpp, scopal)  ← SyntaxError: invalid syntax
+  ✓ AMBI/036    5/5  (ds1000, scopal)
+  ~ AMBI/038    3/5  (ds1000, scopal)  ← NameError: name 'nums' is not defined
+  ~ AMBI/039    4/5  (mbpp, scopal)  ← SyntaxError: invalid syntax
+  ✓ AMBI/040    5/5  (ds1000, scopal)
+  ~ AMBI/042    1/5  (ds1000, scopal)  ← SyntaxError: invalid syntax
+  ✗ AMBI/043    0/5  (ds1000, collective_d)  ← SyntaxError: invalid syntax
+  ~ AMBI/047    3/5  (ds1000, collective_d)  ← SyntaxError: invalid syntax
+  ✓ AMBI/048    5/5  (mbpp, collective_d)
+  ✓ AMBI/049    5/5  (ds1000, collective_d)
+  ✗ AMBI/051    0/5  (ds1000, collective_d)  ←   File "/sandbox/run.py", line 79, in t
+  ✗ AMBI/052    0/5  (ds1000, collective_d)  ← NameError: name 'new_features' is not defined
+  ✓ AMBI/054    5/5  (mbpp, elliptical)
+  ✗ AMBI/056    0/5  (ds1000, elliptical)  ← SyntaxError: unterminated string literal (detected at line 7
+  ✗ AMBI/057    0/5  (ds1000, elliptical)  ← SyntaxError: invalid syntax
+  ✓ AMBI/058    5/5  (ds1000, elliptical)
+  ✗ AMBI/060    0/5  (ds1000, elliptical)  ← SyntaxError: unterminated string literal (detected at line 1
+  ✗ AMBI/062    0/5  (mbpp, elliptical)  ← AssertionError
+  ✗ AMBI/063    0/5  (humaneval, scopal)  ← SyntaxError: invalid syntax
+  ✓ AMBI/064    5/5  (humaneval, scopal)
+
+Total time:  3616.2s
+Results:     /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/baseline_gemini-3.1-pro_20260505_194407.jsonl
+Benchmark items to evaluate: 48
+Model:       google/gemini-3.1-pro-preview
+Temperature: 0.8  |  n_samples: 5
+
+[ 1/48] AMBI/001  (mbpp, collective_distributive, low)...  A:4/5  B:0/5  (93.3s)
+[ 2/48] AMBI/002  (mbpp, syntactic, high)...  A:5/5  B:0/5  (77.6s)
+[ 3/48] AMBI/003  (mbpp, collective_distributive, low)...  A:0/5  B:0/5  (51.7s)
+[ 4/48] AMBI/004  (mbpp, collective_distributive, low)...  A:5/5  B:0/5  (72.8s)
+[ 5/48] AMBI/005  (mbpp, coreferential, low)...  A:0/5  B:0/5  (180.5s)
+[ 6/48] AMBI/006  (mbpp, collective_distributive, low)...  A:0/5  B:0/5  (89.5s)
+[ 7/48] AMBI/007  (mbpp, collective_distributive, low)...  A:5/5  B:0/5  (28.4s)
+[ 8/48] AMBI/008  (mbpp, collective_distributive, low)...  A:5/5  B:0/5  (41.9s)
+[ 9/48] AMBI/009  (mbpp, syntactic, low)...  A:0/5  B:3/5  (74.8s)
+[10/48] AMBI/010  (mbpp, collective_distributive, low)...  A:0/5  B:0/5  (30.3s)
+[11/48] AMBI/011  (mbpp, syntactic, low)...  A:4/5  B:0/5  (83.0s)
+[12/48] AMBI/013  (mbpp, collective_distributive, low)...  A:4/5  B:0/5  (82.9s)
+[13/48] AMBI/014  (mbpp, collective_distributive, low)...  A:1/5  B:0/5  (83.4s)
+[14/48] AMBI/015  (ds1000, coreferential, low)...  A:0/5  B:0/5  (94.5s)
+[15/48] AMBI/016  (ds1000, coreferential, low)...  A:0/5  B:0/5  (93.2s)
+[16/48] AMBI/017  (ds1000, coreferential, low)...  A:0/5  B:0/5  (98.8s)
+[17/48] AMBI/019  (ds1000, coreferential, low)...  A:5/5  B:0/5  (91.5s)
+[18/48] AMBI/020  (ds1000, coreferential, low)...  A:0/5  B:0/5  (97.6s)
+[19/48] AMBI/021  (ds1000, coreferential, low)...  A:0/5  B:0/5  (92.1s)
+[20/48] AMBI/022  (ds1000, coreferential, high)...  A:0/5  B:0/5  (92.7s)
+[21/48] AMBI/023  (ds1000, coreferential, high)...  A:0/5  B:1/5  (91.6s)
+[22/48] AMBI/024  (ds1000, coreferential, high)...  

@@ -1,14 +1,15 @@
 # AmbiCode-Eval — Project Status
 
-*Last updated: 2026-05-04*
+*Last updated: 2026-05-05*
 
 ## Current State
 
-**Phase 1 + Phases 2–4 complete.**
+**Phase 1 + Phases 2–4 complete. First full 62-item evaluation run on two SOTA models.**
 
 - **62 verified benchmark items** in `data/benchmark/benchmark.jsonl` (MBPP 26 + DS-1000 36)
 - **Full evaluation pipeline** runs end-to-end for any model: baseline → perturbed → classify → analyze
 - **Cross-model analysis** computes Ambiguity Tax, conditional pass@k, interpretation bias, and behavioral distributions
+- **Initial findings on gpt-5.4 + claude-sonnet** (n=5, T=0.8) — see [findings.md](findings.md)
 
 ## Benchmark Coverage (Phase 1)
 
@@ -87,6 +88,23 @@ Phase 4: Aggregation + Plots (analyze_results.py)
 - **Interpretation Bias** = `chose_a / (chose_a + chose_b)` among decisive samples
 - **Behavioral Distribution** = fraction SA / EA / AC / unclassifiable / error (judge-failed)
 
+## First Full Evaluation Run (2026-05-05)
+
+Run config: 62 items, n=5 samples, T=0.8, Mode B prompt, all audit fixes applied.
+
+| Metric | gpt-5.4 | claude-sonnet |
+|---|---|---|
+| baseline pass@1 | 50.6% | 47.1% |
+| pass_either@1 | 45.8% | 57.7% |
+| Ambiguity Tax @1 | +4.8 pp | −10.6 pp |
+| interp_a_bias | 82.6% | 74.3% |
+| SA / EA / AC | 91.3 / 8.7 / 0% | 89.0 / 10.3 / 0.6% |
+
+Cleanest signal: gpt-5.4 on DS-1000 coreferential/scopal items shows tax of +25–35 pp.
+Aggregate tax is diluted by ~6 MBPP items where Stage-1 perturbation accidentally
+disambiguates a vague baseline (false-negative tax). Full breakdown in
+[findings.md](findings.md).
+
 ## Recent Audit Fixes
 
 A logic audit before running models identified and fixed several bugs:
@@ -99,6 +117,7 @@ A logic audit before running models identified and fixed several bugs:
 | **Classification "error" label** silently dropped (not in LABELS list) → judge failures invisible in stats | `analyze_results.py` | Added "error" to LABELS, displayed in tables |
 | **pass@k** was computed as aggregate `c/n` (≡ pass@1) | `analyze_results.py` | Added unbiased Chen-et-al estimator with K_VALUES=[1,3] |
 | **`parse_response` fallback** put entire response into `code` field → AC questions sandbox-failed AND mis-classified | `run_perturbed_eval.py` | Heuristic: text must look like code (def/import/etc) AND not end in `?` |
+| **MBPP baseline/perturbed asymmetry**: baseline used plain text, perturbed used `def` + docstring → unfair comparison | `run_baseline_eval.py` | Baseline now uses same `def` + docstring structure (no leaking example) |
 
 ## System Prompt Design
 
@@ -130,7 +149,47 @@ Image-based pixel comparison cannot be normalized into assertion-style tests.
 Only 36 candidates total in raw data. Scopal ambiguity is rare in code prompts.
 
 ### 4. AC Rate is Low by Construction
-Modern instruction-tuned LLMs rarely ask clarification questions even when given permission. AC=0% is a valid observation, not a bug. To trigger more AC behavior would require meta-prompts that contaminate the measurement.
+Modern instruction-tuned LLMs rarely ask clarification questions even when given permission. AC=0% is a valid observation, not a bug. To trigger more AC behavior would require meta-prompts that contaminate the measurement. **Confirmed empirically (2026-05-05)**: across 620 perturbed samples on gpt-5.4 + claude-sonnet, only 2 AC events (both on AMBI/021).
+
+### 5b. Pipeline v2 + HumanEval addition (2026-05-05)
+
+A reformed perturbation generation pipeline (4 reforms — opt-out, info
+conservation, bilateral naturalness gate, new Stage-1.5 quality gate) was
+implemented and run on 127 high-feasibility HumanEval anchors. See
+[benchmark_generated_v2.md](benchmark_generated_v2.md) for the design and
+[findings.md](findings.md) §"v2 First Application to HumanEval" for funnel.
+
+**Headline outcomes**:
+- 2/127 items survived the full pipeline (`benchmark_humaneval_v2.jsonl`),
+  both scopal: AMBI/063 (`prime_fib`) and AMBI/064 (`is_equal_to_sum_even`).
+- Merged with the v2-evaluation benchmark to produce
+  `benchmark_v2_full.jsonl` (48 items: 19 MBPP + 27 DS-1000 + 2 HumanEval).
+- A separate Stage-4 bug was discovered and fixed: HumanEval's
+  `def check(candidate)` was never invoked in the sandbox script, so all
+  4 cells of the 2×2 trivially passed. The patch appends
+  `check({entry_point})` for HumanEval items. The same patch is now in
+  `run_baseline_eval.py` and `run_perturbed_eval.py` so the merged
+  benchmark can be evaluated correctly.
+- Cross-model behavior on the new opt-out channel: Gemini-3.1-pro used it
+  31× of 127 (24%); gpt-5.4 and claude-sonnet-4-6 never used it. This is
+  itself a paper-worthy finding about instruction-following bias.
+
+### 5. Stage 1 Perturbation Quality + Other Benchmark Issues
+A full manual audit (2026-05-05, see [benchmark_audit.md](benchmark_audit.md))
+identified five categories of quality issues across ~25 of the 62 items:
+
+1. **Information leakage** in perturbation (9 items) — perturbed prompt is clearer than clean
+2. **Duplicated anchors** (9 anchor groups, ~17 items) — same source task admitted multiple times
+3. **Dark items** (9 items) — both clean and perturbed pass ≤20%, so they contribute no signal
+4. **Contrived interpretation B** (5 items) — Stage 1 invented a second reading that's unnatural
+5. **Meta-prompting** (1 item, AMBI/039) — perturbation explicitly announces ambiguity
+
+**Resolution → benchmark v2** at `data/benchmark/benchmark_v2.jsonl` (46 items):
+- 10 duplicates dropped (kept one per anchor group)
+- 6 dark items dropped (Ambiguity Tax undefined under floor effect)
+- 7 items had `perturbed_prompt` rewritten to remove leakage / meta-prompts
+- DS-1000 elliptical (8→4) and MBPP syntactic (8→4) coverage thinned;
+  plan is to backfill from HumanEval-sourced items in a follow-up Stage 1 run.
 
 ## Sample Workflow
 

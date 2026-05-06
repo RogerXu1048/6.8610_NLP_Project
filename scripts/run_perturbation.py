@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-"""Run the perturbation pipeline (Stage 1 + Stage 2 + Stage 3 + Stage 4).
+"""Run the perturbation pipeline (Stage 1 + 1.5 + 2 + 3 + 4).
 
-Stage 1: SOTA models generate perturbed prompts + interpretations
-Stage 2: Judge models vote on interpretations → entropy gate filters fakes
-Stage 3: Generate ref_solution_b + test_b for passed perturbations
-Stage 4: Sandbox exclusivity gate — verify 2x2 matrix (ref_a/b × test_a/b)
+Stage 1   : SOTA models generate perturbed prompts + interpretations (with opt-out)
+Stage 1.5 : Quality gate — independent judge checks leakage / B-naturalness / distinguishability
+Stage 2   : Bilateral naturalness gate — 5 judges, "is A natural?" + "is B natural?"
+Stage 3   : Generate ref_solution_b + test_b for passed perturbations
+Stage 4   : Sandbox exclusivity gate — verify 2x2 matrix (ref_a/b × test_a/b)
 
 Usage:
     python scripts/run_perturbation.py                                # full pipeline
-    python scripts/run_perturbation.py --stage 1                      # Stage 1 only
-    python scripts/run_perturbation.py --stage 2                      # Stage 2 only
-    python scripts/run_perturbation.py --stage 3                      # Stage 3 only
-    python scripts/run_perturbation.py --stage 4                      # Stage 4 only (needs S3 output + Docker)
+    python scripts/run_perturbation.py --stage 1                      # one stage at a time
+    python scripts/run_perturbation.py --stage 1.5                    # Stage 1.5 only
     python scripts/run_perturbation.py --max-tasks 10                 # limit tasks
     python scripts/run_perturbation.py --task-ids HumanEval/32        # specific tasks
 """
 
 import argparse
+import copy
 import sys
 from collections import Counter
 from pathlib import Path
@@ -26,8 +26,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src.data.store import BenchmarkStore
 from src.pipeline.perturbation import load_anchor_results, select_anchors
 from src.pipeline.prompts import load_pipeline_config
-from src.pipeline.stage1_perturbation import run_stage1
-from src.pipeline.stage2_entropy_gate import load_stage1_results, run_stage2
+from src.pipeline.stage1_perturbation import run_stage1, Stage1Result
+from src.pipeline.stage1_5_quality_gate import run_stage1_5, load_stage1_5_results
+from src.pipeline.stage2_entropy_gate import run_stage2, load_stage1_results
 from src.pipeline.stage3_test_generation import load_stage2_results, run_stage3
 from src.pipeline.stage4_exclusivity_gate import load_stage3_results, run_stage4
 
@@ -35,8 +36,8 @@ from src.pipeline.stage4_exclusivity_gate import load_stage3_results, run_stage4
 def main():
     parser = argparse.ArgumentParser(description="Run perturbation pipeline")
     parser.add_argument(
-        "--stage", type=int, choices=[1, 2, 3, 4], default=None,
-        help="Run only this stage (default: all four)",
+        "--stage", type=str, choices=["1", "1.5", "2", "3", "4"], default=None,
+        help="Run only this stage (default: all five)",
     )
     parser.add_argument(
         "--anchor-results", type=Path,
@@ -45,7 +46,11 @@ def main():
     )
     parser.add_argument(
         "--stage1-results", type=Path, default=None,
-        help="Path to stage1_results.jsonl (Stage 2 input, auto-detected if omitted)",
+        help="Path to stage1_results.jsonl (Stage 1.5/2 input, auto-detected if omitted)",
+    )
+    parser.add_argument(
+        "--stage1-5-results", type=Path, default=None,
+        help="Path to stage1_5_results.jsonl (Stage 2 filter, auto-detected if omitted)",
     )
     parser.add_argument(
         "--stage2-results", type=Path, default=None,
@@ -64,15 +69,16 @@ def main():
     args = parser.parse_args()
 
     config = load_pipeline_config()
-    run_s1 = args.stage is None or args.stage == 1
-    run_s2 = args.stage is None or args.stage == 2
-    run_s3 = args.stage is None or args.stage == 3
-    run_s4 = args.stage is None or args.stage == 4
+    run_s1 = args.stage is None or args.stage == "1"
+    run_s1_5 = args.stage is None or args.stage == "1.5"
+    run_s2 = args.stage is None or args.stage == "2"
+    run_s3 = args.stage is None or args.stage == "3"
+    run_s4 = args.stage is None or args.stage == "4"
 
-    # Load raw data (needed by Stage 1, 3, and 4)
+    # Load raw data (needed by Stage 1, 1.5, 3, and 4)
     store = None
     task_map = None
-    if run_s1 or run_s3 or run_s4:
+    if run_s1 or run_s1_5 or run_s3 or run_s4:
         store = BenchmarkStore.load_local("data/raw")
         task_map = {t.task_id: t for t in store.all_tasks()}
         print(f"Loaded {len(store)} raw tasks for lookup")
@@ -116,7 +122,31 @@ def main():
             output_dir=args.output,
         )
 
-    # ── Stage 2 ──────────────────────────────────────────────────────────
+    # ── Stage 1.5 — Quality Gate ─────────────────────────────────────────
+    s1_5_results = None
+    if run_s1_5:
+        if s1_results is None:
+            s1_path = args.stage1_results
+            if s1_path is None:
+                s1_path = Path(config["perturbation"]["output_dir"]) / "stage1_results.jsonl"
+            print(f"\nLoading Stage 1 results from {s1_path}...")
+            s1_results = load_stage1_results(s1_path)
+            print(f"Loaded {len(s1_results)} Stage 1 results")
+
+        if task_map is None:
+            store = BenchmarkStore.load_local("data/raw")
+            task_map = {t.task_id: t for t in store.all_tasks()}
+            print(f"Loaded {len(store)} raw tasks for lookup")
+
+        print()
+        s1_5_results = run_stage1_5(
+            tasks=task_map,
+            stage1_results=s1_results,
+            config=config,
+            output_dir=args.output,
+        )
+
+    # ── Stage 2 — Bilateral Naturalness Gate ─────────────────────────────
     s2_results = None
     if run_s2:
         if s1_results is None:
@@ -127,9 +157,56 @@ def main():
             s1_results = load_stage1_results(s1_path)
             print(f"Loaded {len(s1_results)} Stage 1 results")
 
+        # Load Stage 1.5 results to filter Stage 1 generations down to those
+        # that passed the quality gate. If no Stage 1.5 file exists, Stage 2
+        # will see all non-errored / non-opted-out generations (legacy behavior).
+        if s1_5_results is None:
+            s1_5_path = args.stage1_5_results
+            if s1_5_path is None:
+                s1_5_path = Path(config["quality_gate"]["output_dir"]) / "stage1_5_results.jsonl"
+            if s1_5_path.exists():
+                print(f"Loading Stage 1.5 results from {s1_5_path}...")
+                s1_5_results = load_stage1_5_results(s1_5_path)
+                print(f"Loaded {len(s1_5_results)} Stage 1.5 results")
+            else:
+                print(f"No Stage 1.5 results found at {s1_5_path}; "
+                      f"Stage 2 will audit ALL non-errored generations.")
+
+        if s1_5_results is not None:
+            # Build {task_id: {generator_model: passed}} from Stage 1.5
+            qg_pass: dict[str, dict[str, bool]] = {}
+            for r in s1_5_results:
+                qg_pass[r.task_id] = {
+                    qr["generator_model"]: bool(qr.get("passed", False))
+                    for qr in r.quality_results
+                }
+            # Filter each Stage-1 result's generations to only those that passed
+            filtered_s1: list[Stage1Result] = []
+            kept = dropped = 0
+            for r in s1_results:
+                pass_map = qg_pass.get(r.task_id, {})
+                kept_gens = []
+                for g in r.generations:
+                    if g.get("error") or g.get("opted_out") or not g.get("perturbed_prompt"):
+                        continue
+                    if pass_map.get(g["model"], False):
+                        kept_gens.append(g)
+                        kept += 1
+                    else:
+                        dropped += 1
+                # Keep the Stage1Result shell even if all gens were dropped
+                fr = copy.deepcopy(r)
+                fr.generations = kept_gens
+                filtered_s1.append(fr)
+            print(f"Stage 1.5 filter: kept {kept} generations, "
+                  f"dropped {dropped} that failed the quality gate")
+            s1_input_for_s2 = filtered_s1
+        else:
+            s1_input_for_s2 = s1_results
+
         print()
         s2_results = run_stage2(
-            stage1_results=s1_results,
+            stage1_results=s1_input_for_s2,
             config=config,
             output_dir=args.output,
         )

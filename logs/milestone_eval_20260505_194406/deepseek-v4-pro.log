@@ -1,0 +1,54 @@
+Benchmark items to evaluate: 48
+Model:       deepseek/deepseek-v4-pro
+Temperature: 0.8  |  n_samples: 5
+
+[ 1/48] AMBI/001  (mbpp, collective_distributive, low)...  PASS  (148.0s)
+[ 2/48] AMBI/002  (mbpp, syntactic, high)...  PARTIAL 3/5  (105.7s)
+         ↳ AssertionError
+[ 3/48] AMBI/003  (mbpp, collective_distributive, low)...  FAIL  (45.9s)
+         ↳ AssertionError
+[ 4/48] AMBI/004  (mbpp, collective_distributive, low)...  FAIL  (192.1s)
+         ↳   File "/sandbox/run.py", line 7, in max_ag
+[ 5/48] AMBI/005  (mbpp, coreferential, low)...  PASS  (335.4s)
+[ 6/48] AMBI/006  (mbpp, collective_distributive, low)...  FAIL  (292.2s)
+         ↳            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[ 7/48] AMBI/007  (mbpp, collective_distributive, low)...  PASS  (77.0s)
+[ 8/48] AMBI/008  (mbpp, collective_distributive, low)...  PASS  (44.1s)
+[ 9/48] AMBI/009  (mbpp, syntactic, low)...  PASS  (54.7s)
+[10/48] AMBI/010  (mbpp, collective_distributive, low)...  FAIL  (50.5s)
+         ↳     return tuple(a
+[11/48] AMBI/011  (mbpp, syntactic, low)...  PARTIAL 1/5  (153.8s)
+         ↳ SyntaxError: invalid syntax
+[12/48] AMBI/013  (mbpp, collective_distributive, low)...  PASS  (125.1s)
+[13/48] AMBI/014  (mbpp, collective_distributive, low)...  PASS  (74.1s)
+[14/48] AMBI/015  (ds1000, coreferential, low)...  PARTIAL 1/5  (227.6s)
+         ↳ AssertionError
+[15/48] AMBI/016  (ds1000, coreferential, low)...  PARTIAL 3/5  (214.5s)
+         ↳   File "/usr/local/lib/p
+[16/48] AMBI/017  (ds1000, coreferential, low)...  PARTIAL 1/5  (204.4s)
+         ↳ AttributeError: 'KMeans' object has no attribute 'cluster_centers_'
+[17/48] AMBI/019  (ds1000, coreferential, low)...  PARTIAL 1/5  (263.6s)
+         ↳ AssertionError
+[18/48] AMBI/020  (ds1000, coreferential, low)...  FAIL  (180.3s)
+         ↳ AttributeError: 'KMeans' object has no attribute 'cluster_centers_'
+[19/48] AMBI/021  (ds1000, coreferential, low)...  PARTIAL 2/5  (226.1s)
+         ↳   File "/usr/loc
+[20/48] AMBI/022  (ds1000, coreferential, high)...  PARTIAL 3/5  (212.8s)
+         ↳ KeyError: 'result'
+[21/48] AMBI/023  (ds1000, coreferential, high)...  PARTIAL 2/5  (290.8s)
+         ↳ AssertionError
+[22/48] AMBI/024  (ds1000, coreferential, high)...  FAIL  (344.8s)
+         ↳ AssertionError
+[23/48] AMBI/025  (mbpp, syntactic, low)...  FAIL  (97.9s)
+         ↳ AssertionError
+[24/48] AMBI/026  (ds1000, syntactic, low)...  FAIL  (296.2s)
+         ↳ AssertionError
+[25/48] AMBI/030  (ds1000, syntactic, low)...  PARTIAL 4/5  (158.6s)
+         ↳ KeyError: 'result'
+[26/48] AMBI/031  (ds1000, syntactic, low)...  PARTIAL 3/5  (285.3s)
+         ↳ SyntaxError: invalid syntax
+[27/48] AMBI/033  (ds1000, syntactic, high)...  PARTIAL 1/5  (285.4s)
+         ↳ KeyError: 'result'
+[28/48] AMBI/034  (ds1000, syntactic, high)...  PARTIAL 1/5  (373.2s)
+         ↳     assert exec_test(test_env["result"], exp
+[29/48] AMBI/035  (mbpp, scopal, low)...  

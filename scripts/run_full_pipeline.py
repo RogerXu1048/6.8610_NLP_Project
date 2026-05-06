@@ -108,6 +108,14 @@ def main() -> None:
         "--output-dir", default=None,
         help="Directory for analysis plots (default: data/results/analysis_<model>_<ts>/)"
     )
+    parser.add_argument(
+        "--benchmark", default=None,
+        help="Benchmark JSONL file (default: data/benchmark/benchmark.jsonl)"
+    )
+    parser.add_argument(
+        "--sample-workers", type=int, default=5,
+        help="Concurrent LLM calls per item (default: 5 = full n_samples parallelism)"
+    )
     args = parser.parse_args()
 
     judge_model = args.judge_model or _auto_judge(args.model)
@@ -131,6 +139,9 @@ def main() -> None:
         eval_flags += ["--limit", str(args.limit)]
     if args.skip_ds1000:
         eval_flags.append("--skip-ds1000")
+    if args.benchmark:
+        eval_flags += ["--benchmark", args.benchmark]
+    eval_flags += ["--sample-workers", str(args.sample_workers)]
 
     print(f"\n{'#'*65}")
     print(f"  AmbiCode-Eval Full Pipeline")

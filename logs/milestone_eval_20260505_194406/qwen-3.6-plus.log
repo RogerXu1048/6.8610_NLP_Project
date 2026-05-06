@@ -1,0 +1,31 @@
+Benchmark items to evaluate: 48
+Model:       qwen/qwen3.6-plus
+Temperature: 0.8  |  n_samples: 5
+
+[ 1/48] AMBI/001  (mbpp, collective_distributive, low)...  PARTIAL 4/5  (232.9s)
+         ↳ AssertionError
+[ 2/48] AMBI/002  (mbpp, syntactic, high)...  PASS  (280.6s)
+[ 3/48] AMBI/003  (mbpp, collective_distributive, low)...  FAIL  (122.7s)
+         ↳ AssertionError
+[ 4/48] AMBI/004  (mbpp, collective_distributive, low)...  PARTIAL 4/5  (191.6s)
+         ↳   File "/sandbox/run.py", line 5, in max_ag
+[ 5/48] AMBI/005  (mbpp, coreferential, low)...  PASS  (1129.1s)
+[ 6/48] AMBI/006  (mbpp, collective_distributive, low)...  FAIL  (472.8s)
+         ↳            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[ 7/48] AMBI/007  (mbpp, collective_distributive, low)...  PASS  (216.4s)
+[ 8/48] AMBI/008  (mbpp, collective_distributive, low)...  PASS  (126.8s)
+[ 9/48] AMBI/009  (mbpp, syntactic, low)...  PASS  (124.0s)
+[10/48] AMBI/010  (mbpp, collective_distributive, low)...  FAIL  (59.5s)
+         ↳     return tuple(x
+[11/48] AMBI/011  (mbpp, syntactic, low)...  PARTIAL 3/5  (146.5s)
+         ↳ AssertionError
+[12/48] AMBI/013  (mbpp, collective_distributive, low)...  PARTIAL 4/5  (236.9s)
+         ↳ AssertionError
+[13/48] AMBI/014  (mbpp, collective_distributive, low)...  PASS  (287.3s)
+[14/48] AMBI/015  (ds1000, coreferential, low)...  PASS  (456.7s)
+[15/48] AMBI/016  (ds1000, coreferential, low)...  PASS  (462.6s)
+[16/48] AMBI/017  (ds1000, coreferential, low)...  PARTIAL 2/5  (549.4s)
+         ↳ NameError: name 'closest_50_samples' is not defined
+[17/48] AMBI/019  (ds1000, coreferential, low)...  PARTIAL 4/5  (265.5s)
+         ↳ AssertionError
+[18/48] AMBI/020  (ds1000, coreferential, low)...  

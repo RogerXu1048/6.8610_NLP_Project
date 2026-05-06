@@ -55,7 +55,22 @@ perturbation:
   # Output
   output_dir: data/intermediate/perturbation
 
+# ── Phase 1 Step 1.2.5: Quality Gate (Stage 1.5) ──────────────────────────
+# Independent LLM judge inspects each generation against three binary flags
+# (leakage, B-naturalness, distinguishability). Reject if any fails.
+quality_gate:
+  judge_model: claude-haiku       # one judge is enough — these are objective checks
+
+  temperature: 0.0
+  max_tokens: 256
+
+  max_workers: 12
+
+  output_dir: data/intermediate/quality_gate
+
 # ── Phase 1 Step 1.2: Entropy Gate (Stage 2) ──────────────────────────────
+# v2: bilateral naturalness gate. Each judge answers two independent yes/no
+# questions ("is A natural?" + "is B natural?"). Pass requires both ≥ min_yes_per_side.
 entropy_gate:
   # All judge models from anchor selection
   judge_models:
@@ -69,11 +84,13 @@ entropy_gate:
 
   # LLM call parameters
   temperature: 0.0              # deterministic for reproducibility
-  max_tokens: 128               # just {"choice": "X", "confidence": "high"}
+  max_tokens: 256               # bilateral answer is longer than v1 single-choice
 
-  # Entropy threshold for passing the gate
-  # H >= 0.72 means at least a 4-1 split (allows some agreement)
-  # H >= 0.97 means at least a 3-2 split (strict)
+  # Pass criterion: BOTH yes_a >= min_yes_per_side AND yes_b >= min_yes_per_side
+  # 3 of 5 means majority of judges deem each interpretation natural
+  min_yes_per_side: 3
+
+  # Legacy field (kept for back-compat; no longer the pass criterion)
   min_entropy: 0.72
 
   # Concurrency

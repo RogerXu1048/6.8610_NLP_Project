@@ -1,0 +1,410 @@
+Benchmark items to evaluate: 48
+Model:       openai/gpt-5.4
+Temperature: 0.8  |  n_samples: 5
+
+[ 1/48] AMBI/001  (mbpp, collective_distributive, low)...  FAIL  (12.0s)
+         ↳     return [t +
+[ 2/48] AMBI/002  (mbpp, syntactic, high)...  PASS  (9.1s)
+[ 3/48] AMBI/003  (mbpp, collective_distributive, low)...  FAIL  (16.7s)
+         ↳ AssertionError
+[ 4/48] AMBI/004  (mbpp, collective_distributive, low)...  FAIL  (11.0s)
+         ↳   File "/sandbox/run.py", line 14, in max_
+[ 5/48] AMBI/005  (mbpp, coreferential, low)...  PARTIAL 4/5  (36.3s)
+         ↳ AssertionError
+[ 6/48] AMBI/006  (mbpp, collective_distributive, low)...  FAIL  (14.7s)
+         ↳            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[ 7/48] AMBI/007  (mbpp, collective_distributive, low)...  PASS  (12.5s)
+[ 8/48] AMBI/008  (mbpp, collective_distributive, low)...  PASS  (10.9s)
+[ 9/48] AMBI/009  (mbpp, syntactic, low)...  PASS  (11.4s)
+[10/48] AMBI/010  (mbpp, collective_distributive, low)...  FAIL  (11.7s)
+         ↳     return tuple(
+[11/48] AMBI/011  (mbpp, syntactic, low)...  PARTIAL 1/5  (11.3s)
+         ↳ AssertionError
+[12/48] AMBI/013  (mbpp, collective_distributive, low)...  PARTIAL 4/5  (12.0s)
+         ↳ AssertionError
+[13/48] AMBI/014  (mbpp, collective_distributive, low)...  PASS  (13.1s)
+[14/48] AMBI/015  (ds1000, coreferential, low)...  PASS  (14.5s)
+[15/48] AMBI/016  (ds1000, coreferential, low)...  PASS  (14.9s)
+[16/48] AMBI/017  (ds1000, coreferential, low)...  PARTIAL 1/5  (19.6s)
+         ↳ AssertionError
+[17/48] AMBI/019  (ds1000, coreferential, low)...  PARTIAL 3/5  (35.8s)
+         ↳ AssertionError
+[18/48] AMBI/020  (ds1000, coreferential, low)...  PARTIAL 4/5  (19.2s)
+         ↳ AssertionError
+[19/48] AMBI/021  (ds1000, coreferential, low)...  FAIL  (16.8s)
+         ↳   File "/usr/loc
+[20/48] AMBI/022  (ds1000, coreferential, high)...  PASS  (13.4s)
+[21/48] AMBI/023  (ds1000, coreferential, high)...  PASS  (10.7s)
+[22/48] AMBI/024  (ds1000, coreferential, high)...  PARTIAL 1/5  (14.3s)
+         ↳ AssertionError
+[23/48] AMBI/025  (mbpp, syntactic, low)...  FAIL  (11.8s)
+         ↳ AssertionError
+[24/48] AMBI/026  (ds1000, syntactic, low)...  FAIL  (13.1s)
+         ↳ AssertionError
+[25/48] AMBI/030  (ds1000, syntactic, low)...  PASS  (11.6s)
+[26/48] AMBI/031  (ds1000, syntactic, low)...  PARTIAL 3/5  (11.2s)
+         ↳ AssertionError
+[27/48] AMBI/033  (ds1000, syntactic, high)...  FAIL  (16.1s)
+         ↳ AssertionError
+[28/48] AMBI/034  (ds1000, syntactic, high)...  FAIL  (25.5s)
+         ↳   File "<string>",
+[29/48] AMBI/035  (mbpp, scopal, low)...  PASS  (13.0s)
+[30/48] AMBI/036  (ds1000, scopal, low)...  PASS  (10.5s)
+[31/48] AMBI/038  (ds1000, scopal, low)...  PARTIAL 4/5  (9.5s)
+         ↳     assert abs(len(np.where(result == 1)[0]) - size * one_ratio) / s
+[32/48] AMBI/039  (mbpp, scopal, low)...  PASS  (13.9s)
+[33/48] AMBI/040  (ds1000, scopal, high)...  PASS  (10.1s)
+[34/48] AMBI/042  (ds1000, scopal, high)...  PARTIAL 4/5  (20.6s)
+         ↳ AssertionError
+[35/48] AMBI/043  (ds1000, collective_distributive, low)...  PARTIAL 4/5  (11.0s)
+         ↳ AssertionError
+[36/48] AMBI/047  (ds1000, collective_distributive, low)...  PASS  (14.6s)
+[37/48] AMBI/048  (mbpp, collective_distributive, low)...  PASS  (14.5s)
+[38/48] AMBI/049  (ds1000, collective_distributive, low)...  PASS  (10.8s)
+[39/48] AMBI/051  (ds1000, collective_distributive, high)...  PARTIAL 3/5  (24.5s)
+         ↳ <string>:9: UserWarning: Could not infer format, so each element will be parsed 
+[40/48] AMBI/052  (ds1000, collective_distributive, high)...  FAIL  (15.9s)
+         ↳ AssertionError
+[41/48] AMBI/054  (mbpp, elliptical, low)...  PARTIAL 3/5  (17.7s)
+         ↳ AssertionError
+[42/48] AMBI/056  (ds1000, elliptical, low)...  PASS  (20.1s)
+[43/48] AMBI/057  (ds1000, elliptical, low)...  PASS  (18.9s)
+[44/48] AMBI/058  (ds1000, elliptical, low)...  PASS  (13.5s)
+[45/48] AMBI/060  (ds1000, elliptical, high)...  PASS  (28.7s)
+[46/48] AMBI/062  (mbpp, elliptical, high)...  FAIL  (9.7s)
+         ↳ AssertionError
+[47/48] AMBI/063  (humaneval, scopal, low)...  PASS  (17.3s)
+[48/48] AMBI/064  (humaneval, scopal, low)...  PASS  (13.5s)
+
+=======================================================
+Model:        openai/gpt-5.4
+Items:        48
+Aggregate pass rate: 64.2%  (154/240)
+pass@1 (unbiased):    64.2%
+pass@3 (unbiased):    72.5%
+
+── By source ──────────────────────────────
+  mbpp      54.7%  (52/95)  [19 items]
+  ds1000    68.1%  (92/135)  [27 items]
+
+── By ambiguity type ──────────────────────
+  coreferential              66.0%  (33/50)
+  syntactic                  42.2%  (19/45)
+  scopal                     95.0%  (38/40)
+  collective_distributive    54.7%  (41/75)
+  elliptical                 76.7%  (23/30)
+
+── By risk level ──────────────────────────
+  low    67.2%  (121/180)
+  high   55.0%  (33/60)
+
+── Per-item results ───────────────────────
+  ✗ AMBI/001    0/5  (mbpp, collective_d)  ←     return [t +
+  ✓ AMBI/002    5/5  (mbpp, syntactic)
+  ✗ AMBI/003    0/5  (mbpp, collective_d)  ← AssertionError
+  ✗ AMBI/004    0/5  (mbpp, collective_d)  ←   File "/sandbox/run.py", line 14, in max_
+  ~ AMBI/005    4/5  (mbpp, coreferentia)  ← AssertionError
+  ✗ AMBI/006    0/5  (mbpp, collective_d)  ←            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ✓ AMBI/007    5/5  (mbpp, collective_d)
+  ✓ AMBI/008    5/5  (mbpp, collective_d)
+  ✓ AMBI/009    5/5  (mbpp, syntactic)
+  ✗ AMBI/010    0/5  (mbpp, collective_d)  ←     return tuple(
+  ~ AMBI/011    1/5  (mbpp, syntactic)  ← AssertionError
+  ~ AMBI/013    4/5  (mbpp, collective_d)  ← AssertionError
+  ✓ AMBI/014    5/5  (mbpp, collective_d)
+  ✓ AMBI/015    5/5  (ds1000, coreferentia)
+  ✓ AMBI/016    5/5  (ds1000, coreferentia)
+  ~ AMBI/017    1/5  (ds1000, coreferentia)  ← AssertionError
+  ~ AMBI/019    3/5  (ds1000, coreferentia)  ← AssertionError
+  ~ AMBI/020    4/5  (ds1000, coreferentia)  ← AssertionError
+  ✗ AMBI/021    0/5  (ds1000, coreferentia)  ←   File "/usr/loc
+  ✓ AMBI/022    5/5  (ds1000, coreferentia)
+  ✓ AMBI/023    5/5  (ds1000, coreferentia)
+  ~ AMBI/024    1/5  (ds1000, coreferentia)  ← AssertionError
+  ✗ AMBI/025    0/5  (mbpp, syntactic)  ← AssertionError
+  ✗ AMBI/026    0/5  (ds1000, syntactic)  ← AssertionError
+  ✓ AMBI/030    5/5  (ds1000, syntactic)
+  ~ AMBI/031    3/5  (ds1000, syntactic)  ← AssertionError
+  ✗ AMBI/033    0/5  (ds1000, syntactic)  ← AssertionError
+  ✗ AMBI/034    0/5  (ds1000, syntactic)  ←   File "<string>",
+  ✓ AMBI/035    5/5  (mbpp, scopal)
+  ✓ AMBI/036    5/5  (ds1000, scopal)
+  ~ AMBI/038    4/5  (ds1000, scopal)  ←     assert abs(len(np.where(result == 1)[0]) - size * one_ra
+  ✓ AMBI/039    5/5  (mbpp, scopal)
+  ✓ AMBI/040    5/5  (ds1000, scopal)
+  ~ AMBI/042    4/5  (ds1000, scopal)  ← AssertionError
+  ~ AMBI/043    4/5  (ds1000, collective_d)  ← AssertionError
+  ✓ AMBI/047    5/5  (ds1000, collective_d)
+  ✓ AMBI/048    5/5  (mbpp, collective_d)
+  ✓ AMBI/049    5/5  (ds1000, collective_d)
+  ~ AMBI/051    3/5  (ds1000, collective_d)  ← <string>:9: UserWarning: Could not infer format, so each ele
+  ✗ AMBI/052    0/5  (ds1000, collective_d)  ← AssertionError
+  ~ AMBI/054    3/5  (mbpp, elliptical)  ← AssertionError
+  ✓ AMBI/056    5/5  (ds1000, elliptical)
+  ✓ AMBI/057    5/5  (ds1000, elliptical)
+  ✓ AMBI/058    5/5  (ds1000, elliptical)
+  ✓ AMBI/060    5/5  (ds1000, elliptical)
+  ✗ AMBI/062    0/5  (mbpp, elliptical)  ← AssertionError
+  ✓ AMBI/063    5/5  (humaneval, scopal)
+  ✓ AMBI/064    5/5  (humaneval, scopal)
+
+Total time:  739.5s
+Results:     /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/baseline_gpt-5.4_20260505_194235.jsonl
+Benchmark items to evaluate: 48
+Model:       openai/gpt-5.4
+Temperature: 0.8  |  n_samples: 5
+
+[ 1/48] AMBI/001  (mbpp, collective_distributive, low)...  A:0/5  B:0/5  (13.5s)
+[ 2/48] AMBI/002  (mbpp, syntactic, high)...  A:5/5  B:0/5  (12.7s)
+[ 3/48] AMBI/003  (mbpp, collective_distributive, low)...  A:0/5  B:0/5  (11.3s)
+[ 4/48] AMBI/004  (mbpp, collective_distributive, low)...  A:0/5  B:0/5  (14.2s)
+[ 5/48] AMBI/005  (mbpp, coreferential, low)...  A:0/5  B:0/5  (34.7s)
+[ 6/48] AMBI/006  (mbpp, collective_distributive, low)...  A:0/5  B:2/5  (19.6s)
+[ 7/48] AMBI/007  (mbpp, collective_distributive, low)...  A:5/5  B:0/5  (17.3s)
+[ 8/48] AMBI/008  (mbpp, collective_distributive, low)...  A:5/5  B:0/5  (16.6s)
+[ 9/48] AMBI/009  (mbpp, syntactic, low)...  A:5/5  B:0/5  (13.6s)
+[10/48] AMBI/010  (mbpp, collective_distributive, low)...  A:0/5  B:0/5  (14.6s)
+[11/48] AMBI/011  (mbpp, syntactic, low)...  A:0/5  B:0/5  (11.4s)
+[12/48] AMBI/013  (mbpp, collective_distributive, low)...  A:4/5  B:0/5  (13.6s)
+[13/48] AMBI/014  (mbpp, collective_distributive, low)...  A:1/5  B:4/5  (15.0s)
+[14/48] AMBI/015  (ds1000, coreferential, low)...  A:4/5  B:0/5  (21.7s)
+[15/48] AMBI/016  (ds1000, coreferential, low)...  A:5/5  B:0/5  (23.9s)
+[16/48] AMBI/017  (ds1000, coreferential, low)...  A:0/5  B:0/5  (32.3s)
+[17/48] AMBI/019  (ds1000, coreferential, low)...  A:5/5  B:0/5  (42.4s)
+[18/48] AMBI/020  (ds1000, coreferential, low)...  A:1/5  B:0/5  (27.5s)
+[19/48] AMBI/021  (ds1000, coreferential, low)...  A:0/5  B:1/5  (30.8s)
+[20/48] AMBI/022  (ds1000, coreferential, high)...  A:0/5  B:0/5  (24.3s)
+[21/48] AMBI/023  (ds1000, coreferential, high)...  A:0/5  B:4/5  (12.6s)
+[22/48] AMBI/024  (ds1000, coreferential, high)...  A:0/5  B:0/5  (15.1s)
+[23/48] AMBI/025  (mbpp, syntactic, low)...  A:0/5  B:0/5  (14.7s)
+[24/48] AMBI/026  (ds1000, syntactic, low)...  A:0/5  B:0/5  (14.1s)
+[25/48] AMBI/030  (ds1000, syntactic, low)...  A:5/5  B:0/5  (11.9s)
+[26/48] AMBI/031  (ds1000, syntactic, low)...  A:0/5  B:0/5  (12.4s)
+[27/48] AMBI/033  (ds1000, syntactic, high)...  A:0/5  B:1/5  (20.4s)
+[28/48] AMBI/034  (ds1000, syntactic, high)...  A:0/5  B:0/5  (30.2s)
+[29/48] AMBI/035  (mbpp, scopal, low)...  A:5/5  B:0/5  (13.7s)
+[30/48] AMBI/036  (ds1000, scopal, low)...  A:0/5  B:0/5  (11.5s)
+[31/48] AMBI/038  (ds1000, scopal, low)...  A:5/5  B:5/5  (12.4s)
+[32/48] AMBI/039  (mbpp, scopal, low)...  A:5/5  B:0/5  (13.6s)
+[33/48] AMBI/040  (ds1000, scopal, high)...  A:0/5  B:0/5  (13.6s)
+[34/48] AMBI/042  (ds1000, scopal, high)...  A:5/5  B:0/5  (16.2s)
+[35/48] AMBI/043  (ds1000, collective_distributive, low)...  A:0/5  B:0/5  (16.8s)
+[36/48] AMBI/047  (ds1000, collective_distributive, low)...  A:5/5  B:0/5  (18.7s)
+[37/48] AMBI/048  (mbpp, collective_distributive, low)...  A:5/5  B:0/5  (19.4s)
+[38/48] AMBI/049  (ds1000, collective_distributive, low)...  A:0/5  B:0/5  (19.9s)
+[39/48] AMBI/051  (ds1000, collective_distributive, high)...  A:4/5  B:0/5  (26.3s)
+[40/48] AMBI/052  (ds1000, collective_distributive, high)...  A:0/5  B:0/5  (23.4s)
+[41/48] AMBI/054  (mbpp, elliptical, low)...  A:0/5  B:0/5  (10.8s)
+[42/48] AMBI/056  (ds1000, elliptical, low)...  A:0/5  B:0/5  (21.5s)
+[43/48] AMBI/057  (ds1000, elliptical, low)...  A:1/5  B:1/5  (18.7s)
+[44/48] AMBI/058  (ds1000, elliptical, low)...  A:5/5  B:0/5  (10.2s)
+[45/48] AMBI/060  (ds1000, elliptical, high)...  A:5/5  B:0/5  (31.8s)
+[46/48] AMBI/062  (mbpp, elliptical, high)...  A:0/5  B:5/5  (14.1s)
+[47/48] AMBI/063  (humaneval, scopal, low)...  A:0/5  B:2/5  (28.1s)
+[48/48] AMBI/064  (humaneval, scopal, low)...  A:5/5  B:0/5  (13.1s)
+
+============================================================
+Model:       openai/gpt-5.4
+Items:       48
+
+── Aggregate pass rates (a sample can satisfy both tests) ──
+pass@k(A):       39.6%  (95/240)
+pass@k(B):       10.4%  (25/240)
+pass@k(either):  47.9%  (115/240)
+
+── pass@1 (unbiased) ──
+pass@1(A):       39.6%
+pass@1(B):       10.4%
+pass@1(either):  47.9%
+
+── pass@3 (unbiased) ──
+pass@3(A):       43.3%
+pass@3(B):       15.8%
+pass@3(either):  55.2%
+
+── Choice decomposition (mutually exclusive, sums to 100%) ──
+chose A only:    37.5%  (90/240)
+chose B only:    8.3%  (20/240)
+both pass:       2.1%  (5/240)  (tests can't distinguish)
+neither pass:    52.1%  (125/240)  (code error or wrong choice)
+
+Interpretation bias (chose A / decisive): 81.8%  (90/110)
+
+── By source ──────────────────────────────────────────
+  mbpp      A:42.1%  B:11.6%  [19 items]
+  ds1000    A:37.0%  B:8.9%  [27 items]
+
+── By ambiguity type ──────────────────────────────────
+  coreferential              A:30.0%  B:10.0%  [10 items]
+  syntactic                  A:33.3%  B:2.2%  [9 items]
+  scopal                     A:62.5%  B:17.5%  [8 items]
+  collective_distributive    A:38.7%  B:8.0%  [15 items]
+  elliptical                 A:36.7%  B:20.0%  [6 items]
+
+── By risk level ──────────────────────────────────────
+  low    A:42.2%  B:8.3%  [36 items]
+  high   A:31.7%  B:16.7%  [12 items]
+
+── Per-item results ───────────────────────────────────
+  AMBI/001    A:0/5  B:0/5  (mbpp, collective_d)
+  AMBI/002    A:5/5  B:0/5  (mbpp, syntactic)
+  AMBI/003    A:0/5  B:0/5  (mbpp, collective_d)
+  AMBI/004    A:0/5  B:0/5  (mbpp, collective_d)
+  AMBI/005    A:0/5  B:0/5  (mbpp, coreferentia)
+  AMBI/006    A:0/5  B:2/5  (mbpp, collective_d)
+  AMBI/007    A:5/5  B:0/5  (mbpp, collective_d)
+  AMBI/008    A:5/5  B:0/5  (mbpp, collective_d)
+  AMBI/009    A:5/5  B:0/5  (mbpp, syntactic)
+  AMBI/010    A:0/5  B:0/5  (mbpp, collective_d)
+  AMBI/011    A:0/5  B:0/5  (mbpp, syntactic)
+  AMBI/013    A:4/5  B:0/5  (mbpp, collective_d)
+  AMBI/014    A:1/5  B:4/5  (mbpp, collective_d)
+  AMBI/015    A:4/5  B:0/5  (ds1000, coreferentia)
+  AMBI/016    A:5/5  B:0/5  (ds1000, coreferentia)
+  AMBI/017    A:0/5  B:0/5  (ds1000, coreferentia)
+  AMBI/019    A:5/5  B:0/5  (ds1000, coreferentia)
+  AMBI/020    A:1/5  B:0/5  (ds1000, coreferentia)
+  AMBI/021    A:0/5  B:1/5  (ds1000, coreferentia)
+  AMBI/022    A:0/5  B:0/5  (ds1000, coreferentia)
+  AMBI/023    A:0/5  B:4/5  (ds1000, coreferentia)
+  AMBI/024    A:0/5  B:0/5  (ds1000, coreferentia)
+  AMBI/025    A:0/5  B:0/5  (mbpp, syntactic)
+  AMBI/026    A:0/5  B:0/5  (ds1000, syntactic)
+  AMBI/030    A:5/5  B:0/5  (ds1000, syntactic)
+  AMBI/031    A:0/5  B:0/5  (ds1000, syntactic)
+  AMBI/033    A:0/5  B:1/5  (ds1000, syntactic)
+  AMBI/034    A:0/5  B:0/5  (ds1000, syntactic)
+  AMBI/035    A:5/5  B:0/5  (mbpp, scopal)
+  AMBI/036    A:0/5  B:0/5  (ds1000, scopal)
+  AMBI/038    A:5/5  B:5/5  (ds1000, scopal)
+  AMBI/039    A:5/5  B:0/5  (mbpp, scopal)
+  AMBI/040    A:0/5  B:0/5  (ds1000, scopal)
+  AMBI/042    A:5/5  B:0/5  (ds1000, scopal)
+  AMBI/043    A:0/5  B:0/5  (ds1000, collective_d)
+  AMBI/047    A:5/5  B:0/5  (ds1000, collective_d)
+  AMBI/048    A:5/5  B:0/5  (mbpp, collective_d)
+  AMBI/049    A:0/5  B:0/5  (ds1000, collective_d)
+  AMBI/051    A:4/5  B:0/5  (ds1000, collective_d)
+  AMBI/052    A:0/5  B:0/5  (ds1000, collective_d)
+  AMBI/054    A:0/5  B:0/5  (mbpp, elliptical)
+  AMBI/056    A:0/5  B:0/5  (ds1000, elliptical)
+  AMBI/057    A:1/5  B:1/5  (ds1000, elliptical)
+  AMBI/058    A:5/5  B:0/5  (ds1000, elliptical)
+  AMBI/060    A:5/5  B:0/5  (ds1000, elliptical)
+  AMBI/062    A:0/5  B:5/5  (mbpp, elliptical)
+  AMBI/063    A:0/5  B:2/5  (humaneval, scopal)
+  AMBI/064    A:5/5  B:0/5  (humaneval, scopal)
+
+Total time:  896.4s
+Results:     /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/perturbed_gpt-5.4_20260505_195455.jsonl
+Input:       perturbed_gpt-5.4_20260505_195628.jsonl
+Items:       44
+Judge model: anthropic/claude-haiku-4.5
+
+[ 1/44] AMBI/001  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.9s)
+[ 2/44] AMBI/002  (mbpp, syntactic)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.9s)
+[ 3/44] AMBI/003  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.7s)
+[ 4/44] AMBI/004  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'EA', 'EA']  (7.6s)
+[ 5/44] AMBI/005  (mbpp, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.8s)
+[ 6/44] AMBI/006  (mbpp, collective_distributive)  5 sample(s)...  ['EA', 'EA', 'EA', 'EA', 'SA']  (6.3s)
+[ 7/44] AMBI/007  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.2s)
+[ 8/44] AMBI/008  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.3s)
+[ 9/44] AMBI/009  (mbpp, syntactic)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.4s)
+[10/44] AMBI/010  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.0s)
+[11/44] AMBI/011  (mbpp, syntactic)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (9.1s)
+[12/44] AMBI/013  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (8.1s)
+[13/44] AMBI/014  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'EA', 'EA', 'SA', 'SA']  (8.0s)
+[14/44] AMBI/015  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.4s)
+[15/44] AMBI/016  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (8.2s)
+[16/44] AMBI/017  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.1s)
+[17/44] AMBI/019  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (8.4s)
+[18/44] AMBI/020  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.5s)
+[19/44] AMBI/021  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.7s)
+[20/44] AMBI/022  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (8.4s)
+[21/44] AMBI/023  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.0s)
+[22/44] AMBI/024  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.5s)
+[23/44] AMBI/025  (mbpp, syntactic)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.5s)
+[24/44] AMBI/026  (ds1000, syntactic)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.1s)
+[25/44] AMBI/030  (ds1000, syntactic)  5 sample(s)...  ['EA', 'SA', 'SA', 'SA', 'SA']  (6.4s)
+[26/44] AMBI/031  (ds1000, syntactic)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.3s)
+[27/44] AMBI/033  (ds1000, syntactic)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (8.9s)
+[28/44] AMBI/034  (ds1000, syntactic)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.6s)
+[29/44] AMBI/035  (mbpp, scopal)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (8.0s)
+[30/44] AMBI/036  (ds1000, scopal)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (8.1s)
+[31/44] AMBI/038  (ds1000, scopal)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.8s)
+[32/44] AMBI/039  (mbpp, scopal)  5 sample(s)...  ['SA', 'EA', 'EA', 'SA', 'SA']  (12.7s)
+[33/44] AMBI/040  (ds1000, scopal)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.7s)
+[34/44] AMBI/042  (ds1000, scopal)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.0s)
+[35/44] AMBI/043  (ds1000, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.8s)
+[36/44] AMBI/047  (ds1000, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.9s)
+[37/44] AMBI/048  (mbpp, collective_distributive)  5 sample(s)...  ['EA', 'EA', 'SA', 'EA', 'SA']  (7.4s)
+[38/44] AMBI/049  (ds1000, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.4s)
+[39/44] AMBI/051  (ds1000, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (8.6s)
+[40/44] AMBI/052  (ds1000, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.9s)
+[41/44] AMBI/054  (mbpp, elliptical)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.8s)
+[42/44] AMBI/056  (ds1000, elliptical)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.9s)
+[43/44] AMBI/057  (ds1000, elliptical)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (5.6s)
+[44/44] AMBI/058  (ds1000, elliptical)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (9.5s)
+
+=======================================================
+Judge model: anthropic/claude-haiku-4.5
+Samples classified: 220
+
+── Label distribution ─────────────────────────────────
+  SA                206  (93.6%)  ████████████████████████████
+  EA                 14  (6.4%)  █
+
+Total time: 327.5s
+Output:     /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/classified_gpt-5.4_20260505_195628.jsonl
+Traceback (most recent call last):
+  File "/Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/scripts/analyze_results.py", line 1023, in <module>
+    main()
+  File "/Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/scripts/analyze_results.py", line 968, in main
+    recs = load_jsonl(files["classified"])
+  File "/Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/scripts/analyze_results.py", line 97, in load_jsonl
+    records.append(json.loads(line))
+  File "/Users/ender_yang/opt/anaconda3/lib/python3.9/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/Users/ender_yang/opt/anaconda3/lib/python3.9/json/decoder.py", line 340, in decode
+    raise JSONDecodeError("Extra data", s, end)
+json.decoder.JSONDecodeError: Extra data: line 1 column 14 (char 13)
+
+#################################################################
+  AmbiCode-Eval Full Pipeline
+  Tested model : gpt-5.4
+  Judge model  : claude-haiku
+  n_samples    : 5  temperature: 0.8
+  Started at   : 2026-05-05 19:42:34
+#################################################################
+
+=================================================================
+  Step 1/4 — Baseline evaluation (clean prompts)
+  /Users/ender_yang/opt/anaconda3/bin/python3 /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/scripts/run_baseline_eval.py --model gpt-5.4 --temperature 0.8 --n-samples 5 --max-tokens 2048 --source all --benchmark data/benchmark/benchmark_v2_full.jsonl
+=================================================================
+
+
+[pipeline] Step 1/4 — Baseline evaluation (clean prompts) done in 740.4s
+
+=================================================================
+  Step 2/4 — Perturbed evaluation (ambiguous prompts)
+  /Users/ender_yang/opt/anaconda3/bin/python3 /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/scripts/run_perturbed_eval.py --model gpt-5.4 --temperature 0.8 --n-samples 5 --max-tokens 2048 --source all --benchmark data/benchmark/benchmark_v2_full.jsonl
+=================================================================
+
+
+[pipeline] Step 2/4 — Perturbed evaluation (ambiguous prompts) done in 897.1s
+
+=================================================================
+  Step 3/4 — SA/EA/AC behavioral classification
+  /Users/ender_yang/opt/anaconda3/bin/python3 /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/scripts/run_classification.py --input /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/perturbed_gpt-5.4_20260505_195628.jsonl --judge-model claude-haiku --max-tokens 256
+=================================================================
+
+
+[pipeline] Step 3/4 — SA/EA/AC behavioral classification done in 328.1s
+
+=================================================================
+  Step 4/4 — Analysis and plot generation
+  /Users/ender_yang/opt/anaconda3/bin/python3 /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/scripts/analyze_results.py --baseline /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/baseline_gpt-5.4_20260505_194408.jsonl --perturbed /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/perturbed_gpt-5.4_20260505_195628.jsonl --classified /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/classified_gpt-5.4_20260505_195628.jsonl --label gpt-5.4 --output /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/analysis_gpt-5.4_20260505_194234
+=================================================================
+
+
+[pipeline] Step 4/4 — Analysis and plot generation failed (exit 1). Stopping.

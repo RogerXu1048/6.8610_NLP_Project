@@ -4,6 +4,16 @@ A benchmark of **62 tasks** measuring how LLMs handle linguistically ambiguous c
 
 Quantifies the **Ambiguity Tax** (pass@k drop from ambiguity injection) and classifies model behavior into Silent Assumption / Explicit Assumption / Active Clarification.
 
+> **Status (2026-05-05)**: Phase 1 + Phases 2–4 complete. First full evaluation
+> run on `gpt-5.4` and `claude-sonnet-4-6` (n=5, T=0.8). See
+> [`docs/findings.md`](docs/findings.md) for results.
+>
+> **v2 generation pipeline** (4 reforms — opt-out, info conservation, bilateral
+> naturalness, quality gate) reformed; HumanEval re-attempted; produced 2 new
+> scopal items (`benchmark_humaneval_v2.jsonl`). Merged benchmark
+> `benchmark_v2_full.jsonl` is 48 items (19 MBPP + 27 DS-1000 + 2 HumanEval).
+> See [`docs/benchmark_generated_v2.md`](docs/benchmark_generated_v2.md).
+
 ## Quick Start
 
 ```bash

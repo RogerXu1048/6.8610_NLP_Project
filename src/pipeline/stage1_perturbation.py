@@ -29,12 +29,20 @@ from src.util.pipeline_runner import run_pipeline
 
 @dataclass
 class GeneratorOutput:
-    """One SOTA model's perturbation generation."""
+    """One SOTA model's perturbation generation.
+
+    Three terminal states:
+      1. Success — perturbed_prompt populated, opted_out=False, error=None
+      2. Opt-out — perturbed_prompt="", opted_out=True, reason populated, error=None
+      3. Error  — perturbed_prompt="", opted_out=False, error populated
+    """
     model: str
     perturbed_prompt: str = ""
     interpretation_a: str = ""
     interpretation_b: str = ""
     raw_response: str = ""
+    opted_out: bool = False        # NEW (reform B): generator declined to perturb
+    reason: str = ""               # NEW (reform B): explanation for opt-out
     error: Optional[str] = None
 
 
@@ -102,12 +110,27 @@ def generate_single(
         raw = resp.choices[0]
         parsed = parse_json_response(raw)
 
+        # Reform B: handle opt-out (perturbed_prompt is null/None)
+        pp = parsed.get("perturbed_prompt", "")
+        if pp is None or (isinstance(pp, str) and pp.strip() == ""):
+            return GeneratorOutput(
+                model=model_alias,
+                perturbed_prompt="",
+                interpretation_a="",
+                interpretation_b="",
+                raw_response=raw,
+                opted_out=True,
+                reason=parsed.get("reason", "")[:500],  # cap to 500 chars
+            )
+
         return GeneratorOutput(
             model=model_alias,
-            perturbed_prompt=parsed.get("perturbed_prompt", ""),
+            perturbed_prompt=pp,
             interpretation_a=parsed.get("interpretation_a", ""),
             interpretation_b=parsed.get("interpretation_b", ""),
             raw_response=raw,
+            opted_out=False,
+            reason=parsed.get("reason", "")[:500],
         )
     except Exception as e:
         error_msg = str(e)

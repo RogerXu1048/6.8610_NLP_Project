@@ -2,6 +2,7 @@
 gpt-5.4: openai/gpt-5.4
 gpt-5.4-pro: openai/gpt-5.4-pro
 gpt-5.4-mini: openai/gpt-5.4-mini
+gpt-5.5: openai/gpt-5.5
 
 # Anthropic
 claude-opus: anthropic/claude-opus-4.6
@@ -16,11 +17,12 @@ gemini-3.1-flash-lite: google/gemini-3.1-flash-lite
 # DeepSeek
 deepseek-v3.2: deepseek/deepseek-v3.2
 deepseek-v3.2-speciale: deepseek/deepseek-v3.2-speciale
+deepseek-v4-pro: deepseek/deepseek-v4-pro
 deepseek-r1-2026: deepseek/deepseek-r1-0528
 
 # Qwen
 qwen-3.5: qwen/qwen3.5-flash-02-23
-qwen-3.6-plus: qwen/qwen-3.6-plus-preview
+qwen-3.6-plus: qwen/qwen3.6-plus
 qwen-3.5-coder: qwen/qwen-3.5-coder-480b
 
 # MiniMax (New SOTA for efficiency/coding)

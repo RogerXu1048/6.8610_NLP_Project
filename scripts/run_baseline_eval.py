@@ -27,6 +27,7 @@ import json
 import re
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
@@ -61,9 +62,12 @@ SYSTEM_PROMPT_MBPP = (
 SYSTEM_PROMPT_DS1000 = (
     "You are a helpful Python programming assistant solving a data science problem. "
     "If anything about the user's request is unclear, you may ask a clarifying question. "
-    "Otherwise, write executable Python code that uses the variables already defined "
-    "in the execution context (e.g. df, X, data) — do not read from files or "
-    "re-initialize provided data. Store your final answer in a variable named `result`. "
+    "Otherwise, structure your code in TWO parts:\n"
+    "1. Define a function `g(...)` that takes the relevant input variables as parameters "
+    "and returns the answer. The function should be reusable on different inputs.\n"
+    "2. Call it: `result = g(<the variables already defined in the execution context, "
+    "e.g. df, X, data>)` so `result` holds the final answer.\n"
+    "Do not read from files or re-initialize data that is already provided. "
     "Wrap your code in @@CODE_START@@ and @@CODE_END@@ markers."
 )
 
@@ -122,24 +126,95 @@ def extract_example_call(test_code: str) -> str | None:
     return m.group(1) if m else None
 
 
-def build_mbpp_prompt(item: BenchmarkItem) -> str:
-    """Build MBPP prompt with function name and example call signature.
+def extract_example_assertion(test_code: str) -> str | None:
+    """Extract the first complete assertion (call + expected value) for prompting.
 
-    Shows the model both the function name and how it will be called
-    (argument count and types), fixing wrong-signature TypeErrors.
+    From: assert add_lists([5, 6, 7], (9, 10)) == (9, 10, 5, 6, 7)
+    Returns: 'add_lists([5, 6, 7], (9, 10)) == (9, 10, 5, 6, 7)'
+
+    Crucial for clean MBPP prompts that don't otherwise specify the expected
+    return type/structure. Uses ast.parse to handle multi-line expected values
+    (lists/dicts) that simple regex would mis-handle.
     """
-    func_name = extract_function_name(item.test_code)
-    example_call = extract_example_call(item.test_code)
+    import ast
+    try:
+        tree = ast.parse(test_code)
+    except SyntaxError:
+        return None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assert):
+            # Looking for a Compare expression: <call> == <expected>
+            test = node.test
+            if (
+                isinstance(test, ast.Compare)
+                and len(test.ops) == 1
+                and isinstance(test.ops[0], ast.Eq)
+                and isinstance(test.left, ast.Call)
+            ):
+                try:
+                    return ast.unparse(test).strip()
+                except Exception:
+                    return None
+    return None
 
-    if func_name and example_call:
-        return (
-            f"{item.prompt}\n"
-            f"The function should be named `{func_name}`.\n"
-            f"Example call: {example_call}"
-        )
-    if func_name:
-        return f"{item.prompt}\nThe function should be named `{func_name}`."
-    return item.prompt
+
+def extract_function_signature(perturbed_prompt: str) -> str | None:
+    """Extract the `def name(params):` line from an MBPP-style perturbed prompt.
+
+    All MBPP perturbed prompts have shape:
+        def <name>(<params>):
+            \"\"\"<docstring>\"\"\"
+
+    Returns the signature line (without trailing colon-newline) or None
+    if no def line is present.
+    """
+    m = re.match(r"\s*(def\s+\w+\s*\([^)]*\)\s*:)", perturbed_prompt)
+    return m.group(1) if m else None
+
+
+def ensure_humaneval_test_invocation(test_code: str, entry_point: str | None) -> str:
+    """For HumanEval, ensure `check(<entry_point>)` is called at the top level.
+
+    The original HumanEval test_code defines `def check(candidate)` but never
+    calls it — without an invocation, the sandbox would exit 0 with no
+    assertion executed. Appends an invocation if a top-level `check(` call
+    is not already present.
+    """
+    if not entry_point:
+        return test_code
+    top_level_call = re.compile(r"^\s*check\s*\(", re.MULTILINE)
+    if top_level_call.search(test_code):
+        return test_code
+    return test_code.rstrip() + f"\ncheck({entry_point})\n"
+
+
+def build_mbpp_prompt(item: BenchmarkItem) -> str:
+    """Build MBPP baseline prompt aligned in structure with the perturbed prompt.
+
+    Both baseline and perturbed prompts follow:
+        def <name>(<params>):
+            \"\"\"<docstring text>\"\"\"
+
+    The ONLY difference between baseline and perturbed is the docstring text:
+      - baseline: original clean prompt (no ambiguity)
+      - perturbed: ambiguity-injected docstring (from benchmark)
+
+    No example assertion is included — including the test_a expected value would
+    leak interpretation A's behavior to the model, biasing the Ambiguity Tax
+    measurement toward A. Some MBPP clean prompts are inherently vague (e.g.
+    return type unspecified) and the model may fail; that's an honest property
+    of the benchmark, not something an example should paper over.
+    """
+    sig = extract_function_signature(item.perturbed_prompt)
+    func_name = extract_function_name(item.test_code)
+
+    # If we couldn't extract signature (rare), fall back to text-only form
+    if not sig:
+        if func_name:
+            return f"{item.prompt}\nThe function should be named `{func_name}`."
+        return item.prompt
+
+    return f'{sig}\n    """\n    {item.prompt.rstrip()}\n    """'
 
 
 def wrap_ds1000_solution(code: str) -> str:
@@ -154,6 +229,58 @@ def wrap_ds1000_solution(code: str) -> str:
 # ── Per-item evaluation ────────────────────────────────────────────────────────
 
 
+def _run_one_baseline_sample(
+    idx: int,
+    item: BenchmarkItem,
+    client: LLMClient,
+    config: ModelConfig,
+    sandbox_default: Sandbox,
+    sandbox_ds1000: Sandbox | None,
+) -> dict:
+    """Single baseline (LLM-call + sandbox) run; thread-safe for parallel use."""
+    sample: dict = {"sample": idx, "passed": False, "exit_code": -1,
+                    "timed_out": False, "stderr": "", "raw_response": "",
+                    "think_block": "", "prose": "", "generated_code": "",
+                    "latency_s": 0.0}
+    try:
+        if item.source == "ds1000":
+            if sandbox_ds1000 is None:
+                sample["stderr"] = "DS-1000 sandbox not available (--skip-ds1000)"
+                return sample
+            prompt = item.prompt
+            resp = client.call(config, prompt=prompt, system=SYSTEM_PROMPT_DS1000)
+            parsed = parse_response(resp.choices[0])
+            wrapped = wrap_ds1000_solution(parsed["code"])
+            result = sandbox_ds1000.run(wrapped, item.test_code, timeout_s=60)
+        elif item.source == "humaneval":
+            prompt = item.prompt
+            resp = client.call(config, prompt=prompt, system=SYSTEM_PROMPT_MBPP)
+            parsed = parse_response(resp.choices[0])
+            test_code = ensure_humaneval_test_invocation(item.test_code, item.entry_point)
+            result = sandbox_default.run(parsed["code"], test_code)
+        else:
+            # MBPP
+            prompt = build_mbpp_prompt(item)
+            resp = client.call(config, prompt=prompt, system=SYSTEM_PROMPT_MBPP)
+            parsed = parse_response(resp.choices[0])
+            result = sandbox_default.run(parsed["code"], item.test_code)
+
+        sample.update({
+            "passed": result.passed,
+            "exit_code": result.exit_code,
+            "timed_out": result.timed_out,
+            "stderr": result.stderr[:400] if result.stderr else "",
+            "raw_response": resp.choices[0],
+            "think_block": parsed["think_block"],
+            "prose": parsed["prose"],
+            "generated_code": parsed["code"],
+            "latency_s": resp.latency_s,
+        })
+    except Exception as exc:
+        sample["stderr"] = str(exc)[:400]
+    return sample
+
+
 def evaluate_item(
     item: BenchmarkItem,
     client: LLMClient,
@@ -161,49 +288,22 @@ def evaluate_item(
     sandbox_default: Sandbox,
     sandbox_ds1000: Sandbox | None,
     n_samples: int,
+    sample_workers: int = 5,
 ) -> dict:
-    """Call LLM n_samples times, run each output in sandbox, record results."""
-    samples = []
-
-    for idx in range(n_samples):
-        sample: dict = {"sample": idx, "passed": False, "exit_code": -1,
-                        "timed_out": False, "stderr": "", "raw_response": "",
-                        "think_block": "", "prose": "", "generated_code": "",
-                        "latency_s": 0.0}
-        try:
-            if item.source == "ds1000":
-                if sandbox_ds1000 is None:
-                    sample["stderr"] = "DS-1000 sandbox not available (--skip-ds1000)"
-                    samples.append(sample)
-                    continue
-                prompt = item.prompt
-                resp = client.call(config, prompt=prompt, system=SYSTEM_PROMPT_DS1000)
-                parsed = parse_response(resp.choices[0])
-                wrapped = wrap_ds1000_solution(parsed["code"])
-                result = sandbox_ds1000.run(wrapped, item.test_code, timeout_s=60)
-            else:
-                # MBPP
-                prompt = build_mbpp_prompt(item)
-                resp = client.call(config, prompt=prompt, system=SYSTEM_PROMPT_MBPP)
-                parsed = parse_response(resp.choices[0])
-                result = sandbox_default.run(parsed["code"], item.test_code)
-
-            sample.update({
-                "passed": result.passed,
-                "exit_code": result.exit_code,
-                "timed_out": result.timed_out,
-                "stderr": result.stderr[:400] if result.stderr else "",
-                "raw_response": resp.choices[0],
-                "think_block": parsed["think_block"],
-                "prose": parsed["prose"],
-                "generated_code": parsed["code"],
-                "latency_s": resp.latency_s,
-            })
-
-        except Exception as exc:
-            sample["stderr"] = str(exc)[:400]
-
-        samples.append(sample)
+    """Run n_samples LLM-call+sandbox tuples concurrently, then aggregate."""
+    samples: list[dict | None] = [None] * n_samples
+    workers = max(1, min(sample_workers, n_samples))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futs = {
+            pool.submit(
+                _run_one_baseline_sample,
+                i, item, client, config, sandbox_default, sandbox_ds1000,
+            ): i for i in range(n_samples)
+        }
+        for fut in as_completed(futs):
+            i = futs[fut]
+            samples[i] = fut.result()
+    samples = [s for s in samples if s is not None]
 
     pass_count = sum(s["passed"] for s in samples)
     return {
@@ -223,14 +323,37 @@ def evaluate_item(
 # ── Summary printing ───────────────────────────────────────────────────────────
 
 
-def print_summary(records: list[dict], model_id: str) -> None:
+def _pass_at_k(n: int, c: int, k: int) -> float:
+    """Unbiased pass@k estimator (Chen et al., 2021)."""
+    from math import comb
+    if k > n or n - c < k:
+        return 1.0 if c >= 1 and k <= n else (0.0 if c == 0 else 1.0)
+    return 1.0 - comb(n - c, k) / comb(n, k)
+
+
+def _mean_pass_at_k(records: list[dict], k: int) -> float | None:
+    """Mean per-item pass@k across records. None if any item has n < k."""
+    if not records or any(r["n_samples"] < k for r in records):
+        return None
+    return sum(
+        _pass_at_k(r["n_samples"], r["pass_count"], k) for r in records
+    ) / len(records)
+
+
+def print_summary(records: list[dict], model_id: str, k_values: list[int] = (1, 3)) -> None:
     total_pass = sum(r["pass_count"] for r in records)
     total_samp = sum(r["n_samples"] for r in records)
 
     print(f"\n{'='*55}")
     print(f"Model:        {model_id}")
     print(f"Items:        {len(records)}")
-    print(f"Overall pass@1: {total_pass/total_samp:.1%}  ({total_pass}/{total_samp})")
+    print(f"Aggregate pass rate: {total_pass/total_samp:.1%}  ({total_pass}/{total_samp})")
+    for k in k_values:
+        rate = _mean_pass_at_k(records, k)
+        if rate is not None:
+            print(f"pass@{k} (unbiased):    {rate:.1%}")
+        else:
+            print(f"pass@{k}:               (n_samples < {k} for some item, skipped)")
 
     # By source
     print(f"\n── By source ──────────────────────────────")
@@ -304,11 +427,19 @@ def main() -> None:
         "--skip-ds1000", action="store_true",
         help="Skip DS-1000 items (avoids needing the ambicode-ds1000 Docker image)"
     )
+    parser.add_argument(
+        "--benchmark", type=Path, default=BENCHMARK_PATH,
+        help=f"Benchmark JSONL file (default: {BENCHMARK_PATH})"
+    )
+    parser.add_argument(
+        "--sample-workers", type=int, default=5,
+        help="Concurrent LLM calls per item (default: 5 = full n_samples parallelism)"
+    )
     args = parser.parse_args()
 
     # Load benchmark items
     items: list[BenchmarkItem] = []
-    with open(BENCHMARK_PATH) as f:
+    with open(args.benchmark) as f:
         for line in f:
             if line.strip():
                 items.append(BenchmarkItem.from_dict(json.loads(line)))
@@ -370,6 +501,7 @@ def main() -> None:
                 item, client, config,
                 sandbox_default, sandbox_ds1000,
                 args.n_samples,
+                sample_workers=args.sample_workers,
             )
             elapsed = time.time() - t0
 

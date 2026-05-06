@@ -152,6 +152,18 @@ perturbation:
     - The two interpretations MUST produce DIFFERENT outputs on common inputs. If they only differ on rare edge cases, the ambiguity is not useful.
     - Keep the perturbed prompt similar length to the original — only change what's needed.
 
+    INFORMATION CONSERVATION (critical — perturbed prompt MUST NOT add info absent from clean):
+    - NO new type signatures, parameter names, or argument counts beyond what the clean prompt provides. Example: if clean says "more than one list", do NOT write `def f(l1, l2, l3)` — that exposes "exactly 3". Use `*args` / `*lists` / a single iterable instead.
+    - NO worked examples (input/output pairs) not in the original.
+    - NO clarifying parentheticals or stipulated assumptions like "(assume we keep the first row)".
+    - NO restating the goal in clearer language than the original used. If clean says "perform index-wise multiplication of tuple elements", do NOT rewrite to "compute the product of inner-tuple elements at each index" — that disambiguates structure.
+    - If the original prompt is verbose or confusing, the perturbed version MUST be equally verbose/confusing — only the ambiguity-injecting words may change.
+    - NO meta-language about the prompt itself ("interpret as you see fit", "could be read multiple ways", etc.). The reader must not be told the prompt is ambiguous.
+
+    NATURALNESS OF INTERPRETATION B (critical):
+    - Interpretation B must be code a senior Python programmer would actually write upon reading the perturbed prompt cold. NOT just "grammatically possible reading" — but "code that would plausibly be produced".
+    - If the only way to construct a B reading is by twisting the wording into a contortion no programmer would use (e.g. "sublists" reread as "all contiguous slices of a flat list", "max of two tuples" reread as "cumulative XOR of all bits combined"), the anchor is not productively ambiguous — see opt-out below.
+
     HANDLING EXAMPLES in the prompt (very important):
     - If the original prompt contains doctest examples (lines with >>>) or input/output pairs, you MUST handle them carefully.
     - REMOVE any examples where the two interpretations produce different outputs — these give away the answer.
@@ -160,24 +172,116 @@ perturbation:
     - You MAY replace concrete examples with a vague placeholder like ">>> func(input)  # see description above".
     - NEVER leave examples that unambiguously demonstrate one interpretation.
 
+    OPT-OUT (use this when the anchor doesn't admit natural ambiguity):
+    - If, after considering the rules above, you cannot produce a perturbation that satisfies BOTH "info conservation" AND "B-naturalness", respond with:
+      {{"perturbed_prompt": null, "interpretation_a": "", "interpretation_b": "", "reason": "<one sentence>"}}
+    - Opting out is far preferable to forcing a contrived B. A rejected anchor saves all downstream cost; a contrived ambiguity wastes 5 judge calls + 1 sandbox run and produces a benchmark item that contributes no signal (pass_b ≈ 0).
+
+    Output fields when generating (not opting out):
     1. **perturbed_prompt**: Rewrite the prompt with {ambiguity_type} ambiguity. Must include function signature. Handle examples as described above.
     2. **interpretation_a**: ONE sentence — the original intended meaning.
     3. **interpretation_b**: ONE sentence — the new alternative meaning.
+    4. **reason**: leave empty string when generating; populate only when opting out.
 
-    ## Example
+    ## Example (productive ambiguity)
 
-    {{"perturbed_prompt": "def merge_dicts(dict_a: dict, dict_b: dict) -> dict:\n    \"\"\"Merge dict_a into dict_b and return it.\n    If keys overlap, the value from dict_a takes precedence.\n    \"\"\"", "interpretation_a": "Return dict_b after merging dict_a into it.", "interpretation_b": "'it' refers to dict_a — return dict_a enriched with dict_b's non-overlapping keys."}}
+    {{"perturbed_prompt": "def merge_dicts(dict_a: dict, dict_b: dict) -> dict:\n    \"\"\"Merge dict_a into dict_b and return it.\n    If keys overlap, the value from dict_a takes precedence.\n    \"\"\"", "interpretation_a": "Return dict_b after merging dict_a into it.", "interpretation_b": "'it' refers to dict_a — return dict_a enriched with dict_b's non-overlapping keys.", "reason": ""}}
+
+    ## Example (opt-out)
+
+    {{"perturbed_prompt": null, "interpretation_a": "", "interpretation_b": "", "reason": "Prompt 'return the length of the input list' has only one natural reading; any second interpretation would require contrived rewording."}}
 
     Now respond with ONLY the JSON object:
+
+# ── Phase 1 Step 1.2.5: Quality Gate (Stage 1.5) ───────────────────────────
+# A single judge reads (clean_prompt, perturbed_prompt, interp_a, interp_b)
+# and answers three binary questions. Reject the generation if any flag fails:
+#   leakage = yes  → reject
+#   b_natural = no → reject
+#   distinguishable = no → reject
+
+quality_gate:
+
+  system: |
+    You are a senior Python programmer auditing a benchmark item. You will be shown:
+      - the ORIGINAL clean prompt (as it appeared in the source dataset),
+      - a PERTURBED prompt that supposedly injects linguistic ambiguity,
+      - two interpretations (A matches the original; B is the alternative reading).
+
+    Your job: answer three independent yes/no questions about whether this perturbation is well-formed.
+
+    Be a strict auditor. The benchmark is degraded if you let through items that:
+      (1) leak information from the perturbation (making it easier than the original),
+      (2) have a contrived B reading no programmer would actually write,
+      (3) have two interpretations that can't be distinguished by typical inputs.
+
+    You MUST respond with ONLY a single valid JSON object. No explanation outside the JSON.
+
+    ## Required JSON Schema
+
+    {{
+      "type": "object",
+      "required": ["leakage", "b_natural", "distinguishable", "reasoning"],
+      "properties": {{
+        "leakage": {{ "type": "string", "enum": ["yes", "no"], "description": "Does the perturbed prompt contain information NOT present in the clean prompt?" }},
+        "b_natural": {{ "type": "string", "enum": ["yes", "no"], "description": "Would a senior Python programmer plausibly write code matching interpretation B?" }},
+        "distinguishable": {{ "type": "string", "enum": ["yes", "no"], "description": "Do interpretations A and B produce DIFFERENT outputs on typical (non-edge-case) inputs?" }},
+        "reasoning": {{ "type": "string", "description": "Brief justification (≤ 2 sentences)." }}
+      }},
+      "additionalProperties": false
+    }}
+
+  task: |
+    ## Original Clean Prompt
+    ```
+    {clean_prompt}
+    ```
+
+    ## Perturbed Prompt
+    ```
+    {perturbed_prompt}
+    ```
+
+    ## Interpretation A (claimed to match the canonical solution)
+    {interpretation_a}
+
+    ## Interpretation B (claimed alternative)
+    {interpretation_b}
+
+    ## Three Independent Questions
+
+    **Q1 (LEAKAGE)** — Does the perturbed prompt contain information NOT in the clean prompt? Look specifically for:
+      - new function signatures with parameter names/counts the clean prompt did not specify (e.g. clean said "more than one list", perturbed says `f(l1, l2, l3)`)
+      - new worked examples (input/output pairs)
+      - clarifying parentheticals or stipulated assumptions ("(assume we keep the first row)")
+      - the goal restated in clearer language than the original used
+      - meta-language ("interpret as you see fit", "could be read multiple ways")
+    Answer "yes" if ANY of the above is present; "no" otherwise.
+
+    **Q2 (B-NATURALNESS)** — Would a senior Python programmer, reading the perturbed prompt cold, plausibly write code matching Interpretation B?
+      - "yes" means: a real programmer would actually produce this code as one of their candidate readings.
+      - "no" means: the reading is grammatically possible but contrived — no one would write this code in practice (e.g., interpreting "sublists" as "all contiguous slices of a flat list", or "max of two tuples" as "cumulative XOR of all bits").
+
+    **Q3 (DISTINGUISHABILITY)** — On a typical (not edge-case) input that satisfies the function's domain, would code matching Interpretation A produce a DIFFERENT output than code matching Interpretation B?
+      - "yes" means: the two readings give visibly different outputs on common inputs.
+      - "no" means: the two readings only differ on rare or contrived inputs (so a unit test couldn't reliably distinguish them).
+
+    Respond with ONLY the JSON object.
 
 # ── Phase 1 Step 1.2: Entropy Gate (Stage 2) ──────────────────────────────
 
 entropy_gate:
 
   system: |
-    You are a software engineer reading a coding prompt. You will be shown a prompt and two possible interpretations of what it asks for.
+    You are a senior Python programmer reading a coding prompt. You will be shown a prompt and two possible interpretations of what it asks for.
 
-    Your job: decide which interpretation the prompt MOST NATURALLY conveys to a typical developer reading it for the first time. Do not overthink — go with your first instinct.
+    For each interpretation, decide INDEPENDENTLY whether a typical Python developer reading the prompt cold would naturally produce code matching that interpretation.
+
+    Both can be "yes" (the prompt is genuinely ambiguous and admits both readings).
+    Both can be "no" (neither reading is natural).
+    One can be yes and the other no (the prompt is unambiguous).
+
+    Do not overthink — answer based on first-instinct naturalness, not whether the reading is logically possible.
 
     You MUST respond with ONLY a single valid JSON object. No explanation, no markdown fences.
 
@@ -185,10 +289,10 @@ entropy_gate:
 
     {{
       "type": "object",
-      "required": ["choice", "confidence"],
+      "required": ["x_natural", "y_natural"],
       "properties": {{
-        "choice": {{ "type": "string", "enum": ["X", "Y"], "description": "Which interpretation the prompt most naturally conveys." }},
-        "confidence": {{ "type": "string", "enum": ["high", "medium", "low"], "description": "How confident you are in your choice." }}
+        "x_natural": {{ "type": "string", "enum": ["yes", "no"], "description": "Would a typical Python programmer naturally produce code matching Interpretation X?" }},
+        "y_natural": {{ "type": "string", "enum": ["yes", "no"], "description": "Would a typical Python programmer naturally produce code matching Interpretation Y?" }}
       }},
       "additionalProperties": false
     }}
@@ -206,11 +310,18 @@ entropy_gate:
 
     **Interpretation Y**: {interpretation_y}
 
-    ## Question
+    ## Questions (answer INDEPENDENTLY)
 
-    Which interpretation does this prompt MOST NATURALLY convey? A typical developer reading this prompt for the first time — which interpretation would they assume?
+    Q_X. Reading this prompt cold, would a typical Python developer naturally produce code matching Interpretation X? (yes/no)
 
-    Respond with ONLY the JSON object: {{"choice": "X" or "Y", "confidence": "high/medium/low"}}
+    Q_Y. Reading this prompt cold, would a typical Python developer naturally produce code matching Interpretation Y? (yes/no)
+
+    Important:
+    - Answer each question on its own merits. The two answers are independent.
+    - "yes" means a senior programmer would plausibly write that code, not just that the reading is grammatically possible.
+    - "no" means the reading is too contrived to actually produce, even if it is technically a valid parse of the prompt.
+
+    Respond with ONLY the JSON object: {{"x_natural": "yes" or "no", "y_natural": "yes" or "no"}}
 
 # ── Phase 1 Step 1.2: Test Generation (Stage 3) ───────────────────────────
 

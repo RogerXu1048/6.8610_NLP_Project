@@ -208,6 +208,22 @@ def run_stage4(
         test_a = task.test_code
         test_b = item.test_b
 
+        # HumanEval test_code defines `def check(candidate)` but never calls it.
+        # Append an explicit invocation so the asserts actually run.
+        # Use a regex that matches a top-level call (not the def) by requiring
+        # the line to start with `check(` (no leading `def `).
+        if task.source == "humaneval" and task.entry_point:
+            import re
+            entry = task.entry_point
+            invocation = f"\ncheck({entry})\n"
+            top_level_call = re.compile(r"^\s*check\s*\(", re.MULTILINE)
+            # The def line is `def check(candidate)` — has `def ` prefix on its line —
+            # so a re match for `^\s*check(` won't hit it.
+            if not top_level_call.search(test_a):
+                test_a = test_a.rstrip() + invocation
+            if not top_level_call.search(test_b):
+                test_b = test_b.rstrip() + invocation
+
         if task.source == "ds1000" and task.metadata.get("normalized"):
             from src.data.ds1000_normalizer import _wrap_solution_as_string
 

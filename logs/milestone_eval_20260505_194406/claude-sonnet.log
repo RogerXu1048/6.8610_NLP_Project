@@ -1,0 +1,479 @@
+Benchmark items to evaluate: 48
+Model:       anthropic/claude-sonnet-4.6
+Temperature: 0.8  |  n_samples: 5
+
+[ 1/48] AMBI/001  (mbpp, collective_distributive, low)...  PASS  (21.9s)
+[ 2/48] AMBI/002  (mbpp, syntactic, high)...  PASS  (17.2s)
+[ 3/48] AMBI/003  (mbpp, collective_distributive, low)...  PASS  (23.6s)
+[ 4/48] AMBI/004  (mbpp, collective_distributive, low)...  PARTIAL 4/5  (29.3s)
+         ↳ AssertionError
+[ 5/48] AMBI/005  (mbpp, coreferential, low)...  PARTIAL 3/5  (51.4s)
+         ↳ AssertionError
+[ 6/48] AMBI/006  (mbpp, collective_distributive, low)...  FAIL  (33.3s)
+         ↳            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[ 7/48] AMBI/007  (mbpp, collective_distributive, low)...  PASS  (8.1s)
+[ 8/48] AMBI/008  (mbpp, collective_distributive, low)...  PASS  (20.3s)
+[ 9/48] AMBI/009  (mbpp, syntactic, low)...  PASS  (22.5s)
+[10/48] AMBI/010  (mbpp, collective_distributive, low)...  FAIL  (9.0s)
+         ↳     return tuple(x
+[11/48] AMBI/011  (mbpp, syntactic, low)...  PASS  (8.4s)
+[12/48] AMBI/013  (mbpp, collective_distributive, low)...  PASS  (23.0s)
+[13/48] AMBI/014  (mbpp, collective_distributive, low)...  PASS  (12.2s)
+[14/48] AMBI/015  (ds1000, coreferential, low)...  FAIL  (23.7s)
+         ↳ AssertionError
+[15/48] AMBI/016  (ds1000, coreferential, low)...  FAIL  (15.5s)
+         ↳   File "/usr/local/lib/p
+[16/48] AMBI/017  (ds1000, coreferential, low)...  FAIL  (18.7s)
+         ↳ AssertionError
+[17/48] AMBI/019  (ds1000, coreferential, low)...  PASS  (17.2s)
+[18/48] AMBI/020  (ds1000, coreferential, low)...  FAIL  (18.6s)
+         ↳ AssertionError
+[19/48] AMBI/021  (ds1000, coreferential, low)...  FAIL  (24.4s)
+         ↳   File "/usr/loc
+[20/48] AMBI/022  (ds1000, coreferential, high)...  FAIL  (21.0s)
+         ↳ AssertionError
+[21/48] AMBI/023  (ds1000, coreferential, high)...  FAIL  (15.2s)
+         ↳ AssertionError
+[22/48] AMBI/024  (ds1000, coreferential, high)...  FAIL  (20.3s)
+         ↳     return object.__getattribute__(
+[23/48] AMBI/025  (mbpp, syntactic, low)...  PASS  (23.3s)
+[24/48] AMBI/026  (ds1000, syntactic, low)...  FAIL  (14.2s)
+         ↳ AssertionError
+[25/48] AMBI/030  (ds1000, syntactic, low)...  PASS  (11.8s)
+[26/48] AMBI/031  (ds1000, syntactic, low)...  PARTIAL 1/5  (14.8s)
+         ↳ AssertionError
+[27/48] AMBI/033  (ds1000, syntactic, high)...  FAIL  (14.1s)
+         ↳ AssertionError
+[28/48] AMBI/034  (ds1000, syntactic, high)...  PASS  (17.1s)
+[29/48] AMBI/035  (mbpp, scopal, low)...  PASS  (12.4s)
+[30/48] AMBI/036  (ds1000, scopal, low)...  PASS  (10.3s)
+[31/48] AMBI/038  (ds1000, scopal, low)...  FAIL  (11.9s)
+         ↳            ^^^^^^^^^^^^^^^^^^^^^^
+[32/48] AMBI/039  (mbpp, scopal, low)...  PASS  (25.8s)
+[33/48] AMBI/040  (ds1000, scopal, high)...  FAIL  (10.7s)
+         ↳ AssertionError
+[34/48] AMBI/042  (ds1000, scopal, high)...  FAIL  (21.7s)
+         ↳ AssertionError
+[35/48] AMBI/043  (ds1000, collective_distributive, low)...  PASS  (13.1s)
+[36/48] AMBI/047  (ds1000, collective_distributive, low)...  FAIL  (16.2s)
+         ↳   File "/usr/local/li
+[37/48] AMBI/048  (mbpp, collective_distributive, low)...  PASS  (22.0s)
+[38/48] AMBI/049  (ds1000, collective_distributive, low)...  PASS  (10.5s)
+[39/48] AMBI/051  (ds1000, collective_distributive, high)...  PARTIAL 1/5  (18.4s)
+         ↳ <string>:9: UserWarning: Could not infer format, so each element will be parsed 
+[40/48] AMBI/052  (ds1000, collective_distributive, high)...  FAIL  (16.4s)
+         ↳ AssertionError
+[41/48] AMBI/054  (mbpp, elliptical, low)...  PASS  (23.5s)
+[42/48] AMBI/056  (ds1000, elliptical, low)...  FAIL  (48.2s)
+         ↳     indexer = self.columns._get_index
+[43/48] AMBI/057  (ds1000, elliptical, low)...  FAIL  (21.9s)
+         ↳   File "/usr/local/li
+[44/48] AMBI/058  (ds1000, elliptical, low)...  FAIL  (11.1s)
+         ↳   File "/usr/local/li
+[45/48] AMBI/060  (ds1000, elliptical, high)...  PASS  (28.7s)
+[46/48] AMBI/062  (mbpp, elliptical, high)...  FAIL  (27.7s)
+         ↳ AssertionError
+[47/48] AMBI/063  (humaneval, scopal, low)...  PASS  (14.2s)
+[48/48] AMBI/064  (humaneval, scopal, low)...  PASS  (12.0s)
+
+=======================================================
+Model:        anthropic/claude-sonnet-4.6
+Items:        48
+Aggregate pass rate: 51.7%  (124/240)
+pass@1 (unbiased):    51.7%
+pass@3 (unbiased):    54.6%
+
+── By source ──────────────────────────────
+  mbpp      81.1%  (77/95)  [19 items]
+  ds1000    27.4%  (37/135)  [27 items]
+
+── By ambiguity type ──────────────────────
+  coreferential              16.0%  (8/50)
+  syntactic                  68.9%  (31/45)
+  scopal                     62.5%  (25/40)
+  collective_distributive    66.7%  (50/75)
+  elliptical                 33.3%  (10/30)
+
+── By risk level ──────────────────────────
+  low    60.0%  (108/180)
+  high   26.7%  (16/60)
+
+── Per-item results ───────────────────────
+  ✓ AMBI/001    5/5  (mbpp, collective_d)
+  ✓ AMBI/002    5/5  (mbpp, syntactic)
+  ✓ AMBI/003    5/5  (mbpp, collective_d)
+  ~ AMBI/004    4/5  (mbpp, collective_d)  ← AssertionError
+  ~ AMBI/005    3/5  (mbpp, coreferentia)  ← AssertionError
+  ✗ AMBI/006    0/5  (mbpp, collective_d)  ←            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ✓ AMBI/007    5/5  (mbpp, collective_d)
+  ✓ AMBI/008    5/5  (mbpp, collective_d)
+  ✓ AMBI/009    5/5  (mbpp, syntactic)
+  ✗ AMBI/010    0/5  (mbpp, collective_d)  ←     return tuple(x
+  ✓ AMBI/011    5/5  (mbpp, syntactic)
+  ✓ AMBI/013    5/5  (mbpp, collective_d)
+  ✓ AMBI/014    5/5  (mbpp, collective_d)
+  ✗ AMBI/015    0/5  (ds1000, coreferentia)  ← AssertionError
+  ✗ AMBI/016    0/5  (ds1000, coreferentia)  ←   File "/usr/local/lib/p
+  ✗ AMBI/017    0/5  (ds1000, coreferentia)  ← AssertionError
+  ✓ AMBI/019    5/5  (ds1000, coreferentia)
+  ✗ AMBI/020    0/5  (ds1000, coreferentia)  ← AssertionError
+  ✗ AMBI/021    0/5  (ds1000, coreferentia)  ←   File "/usr/loc
+  ✗ AMBI/022    0/5  (ds1000, coreferentia)  ← AssertionError
+  ✗ AMBI/023    0/5  (ds1000, coreferentia)  ← AssertionError
+  ✗ AMBI/024    0/5  (ds1000, coreferentia)  ←     return object.__getattribute__(
+  ✓ AMBI/025    5/5  (mbpp, syntactic)
+  ✗ AMBI/026    0/5  (ds1000, syntactic)  ← AssertionError
+  ✓ AMBI/030    5/5  (ds1000, syntactic)
+  ~ AMBI/031    1/5  (ds1000, syntactic)  ← AssertionError
+  ✗ AMBI/033    0/5  (ds1000, syntactic)  ← AssertionError
+  ✓ AMBI/034    5/5  (ds1000, syntactic)
+  ✓ AMBI/035    5/5  (mbpp, scopal)
+  ✓ AMBI/036    5/5  (ds1000, scopal)
+  ✗ AMBI/038    0/5  (ds1000, scopal)  ←            ^^^^^^^^^^^^^^^^^^^^^^
+  ✓ AMBI/039    5/5  (mbpp, scopal)
+  ✗ AMBI/040    0/5  (ds1000, scopal)  ← AssertionError
+  ✗ AMBI/042    0/5  (ds1000, scopal)  ← AssertionError
+  ✓ AMBI/043    5/5  (ds1000, collective_d)
+  ✗ AMBI/047    0/5  (ds1000, collective_d)  ←   File "/usr/local/li
+  ✓ AMBI/048    5/5  (mbpp, collective_d)
+  ✓ AMBI/049    5/5  (ds1000, collective_d)
+  ~ AMBI/051    1/5  (ds1000, collective_d)  ← <string>:9: UserWarning: Could not infer format, so each ele
+  ✗ AMBI/052    0/5  (ds1000, collective_d)  ← AssertionError
+  ✓ AMBI/054    5/5  (mbpp, elliptical)
+  ✗ AMBI/056    0/5  (ds1000, elliptical)  ←     indexer = self.columns._get_index
+  ✗ AMBI/057    0/5  (ds1000, elliptical)  ←   File "/usr/local/li
+  ✗ AMBI/058    0/5  (ds1000, elliptical)  ←   File "/usr/local/li
+  ✓ AMBI/060    5/5  (ds1000, elliptical)
+  ✗ AMBI/062    0/5  (mbpp, elliptical)  ← AssertionError
+  ✓ AMBI/063    5/5  (humaneval, scopal)
+  ✓ AMBI/064    5/5  (humaneval, scopal)
+
+Total time:  926.9s
+Results:     /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/baseline_claude-sonnet_20260505_194408.jsonl
+Benchmark items to evaluate: 48
+Model:       anthropic/claude-sonnet-4.6
+Temperature: 0.8  |  n_samples: 5
+
+[ 1/48] AMBI/001  (mbpp, collective_distributive, low)...  A:5/5  B:0/5  (24.5s)
+[ 2/48] AMBI/002  (mbpp, syntactic, high)...  A:4/5  B:1/5  (24.6s)
+[ 3/48] AMBI/003  (mbpp, collective_distributive, low)...  A:0/5  B:0/5  (16.4s)
+[ 4/48] AMBI/004  (mbpp, collective_distributive, low)...  A:5/5  B:0/5  (29.8s)
+[ 5/48] AMBI/005  (mbpp, coreferential, low)...  A:2/5  B:0/5  (61.4s)
+[ 6/48] AMBI/006  (mbpp, collective_distributive, low)...  A:0/5  B:2/5  (32.1s)
+[ 7/48] AMBI/007  (mbpp, collective_distributive, low)...  A:5/5  B:0/5  (16.2s)
+[ 8/48] AMBI/008  (mbpp, collective_distributive, low)...  A:5/5  B:0/5  (10.7s)
+[ 9/48] AMBI/009  (mbpp, syntactic, low)...  A:5/5  B:0/5  (11.8s)
+[10/48] AMBI/010  (mbpp, collective_distributive, low)...  A:0/5  B:0/5  (23.4s)
+[11/48] AMBI/011  (mbpp, syntactic, low)...  A:5/5  B:0/5  (9.2s)
+[12/48] AMBI/013  (mbpp, collective_distributive, low)...  A:5/5  B:0/5  (24.6s)
+[13/48] AMBI/014  (mbpp, collective_distributive, low)...  A:5/5  B:0/5  (20.5s)
+[14/48] AMBI/015  (ds1000, coreferential, low)...  A:4/5  B:0/5  (14.8s)
+[15/48] AMBI/016  (ds1000, coreferential, low)...  A:0/5  B:0/5  (17.8s)
+[16/48] AMBI/017  (ds1000, coreferential, low)...  A:0/5  B:0/5  (51.9s)
+[17/48] AMBI/019  (ds1000, coreferential, low)...  A:0/5  B:0/5  (26.2s)
+[18/48] AMBI/020  (ds1000, coreferential, low)...  A:0/5  B:0/5  (33.5s)
+[19/48] AMBI/021  (ds1000, coreferential, low)...  A:0/5  B:5/5  (43.3s)
+[20/48] AMBI/022  (ds1000, coreferential, high)...  A:0/5  B:0/5  (34.4s)
+[21/48] AMBI/023  (ds1000, coreferential, high)...  A:0/5  B:3/5  (22.9s)
+[22/48] AMBI/024  (ds1000, coreferential, high)...  A:0/5  B:0/5  (18.8s)
+[23/48] AMBI/025  (mbpp, syntactic, low)...  A:5/5  B:0/5  (12.3s)
+[24/48] AMBI/026  (ds1000, syntactic, low)...  A:0/5  B:5/5  (19.0s)
+[25/48] AMBI/030  (ds1000, syntactic, low)...  A:3/5  B:2/5  (27.6s)
+[26/48] AMBI/031  (ds1000, syntactic, low)...  A:0/5  B:0/5  (16.5s)
+[27/48] AMBI/033  (ds1000, syntactic, high)...  A:0/5  B:0/5  (19.6s)
+[28/48] AMBI/034  (ds1000, syntactic, high)...  A:5/5  B:0/5  (21.6s)
+[29/48] AMBI/035  (mbpp, scopal, low)...  A:0/5  B:5/5  (11.7s)
+[30/48] AMBI/036  (ds1000, scopal, low)...  A:1/5  B:0/5  (18.8s)
+[31/48] AMBI/038  (ds1000, scopal, low)...  A:0/5  B:5/5  (11.4s)
+[32/48] AMBI/039  (mbpp, scopal, low)...  A:5/5  B:0/5  (25.7s)
+[33/48] AMBI/040  (ds1000, scopal, high)...  A:0/5  B:0/5  (15.9s)
+[34/48] AMBI/042  (ds1000, scopal, high)...  A:0/5  B:0/5  (21.6s)
+[35/48] AMBI/043  (ds1000, collective_distributive, low)...  A:0/5  B:0/5  (15.0s)
+[36/48] AMBI/047  (ds1000, collective_distributive, low)...  A:0/5  B:0/5  (19.1s)
+[37/48] AMBI/048  (mbpp, collective_distributive, low)...  A:5/5  B:0/5  (27.7s)
+[38/48] AMBI/049  (ds1000, collective_distributive, low)...  A:0/5  B:0/5  (19.9s)
+[39/48] AMBI/051  (ds1000, collective_distributive, high)...  A:5/5  B:0/5  (22.0s)
+[40/48] AMBI/052  (ds1000, collective_distributive, high)...  A:0/5  B:3/5  (21.3s)
+[41/48] AMBI/054  (mbpp, elliptical, low)...  A:4/5  B:1/5  (27.8s)
+[42/48] AMBI/056  (ds1000, elliptical, low)...  A:0/5  B:2/5  (28.4s)
+[43/48] AMBI/057  (ds1000, elliptical, low)...  A:4/5  B:0/5  (13.7s)
+[44/48] AMBI/058  (ds1000, elliptical, low)...  A:5/5  B:0/5  (10.5s)
+[45/48] AMBI/060  (ds1000, elliptical, high)...  A:5/5  B:0/5  (33.8s)
+[46/48] AMBI/062  (mbpp, elliptical, high)...  A:0/5  B:1/5  (13.6s)
+[47/48] AMBI/063  (humaneval, scopal, low)...  A:5/5  B:0/5  (29.1s)
+[48/48] AMBI/064  (humaneval, scopal, low)...  A:4/5  B:0/5  (13.9s)
+
+============================================================
+Model:       anthropic/claude-sonnet-4.6
+Items:       48
+
+── Aggregate pass rates (a sample can satisfy both tests) ──
+pass@k(A):       44.2%  (106/240)
+pass@k(B):       14.6%  (35/240)
+pass@k(either):  58.8%  (141/240)
+
+── pass@1 (unbiased) ──
+pass@1(A):       44.2%
+pass@1(B):       14.6%
+pass@1(either):  58.8%
+
+── pass@3 (unbiased) ──
+pass@3(A):       49.0%
+pass@3(B):       21.9%
+pass@3(either):  66.5%
+
+── Choice decomposition (mutually exclusive, sums to 100%) ──
+chose A only:    44.2%  (106/240)
+chose B only:    14.6%  (35/240)
+both pass:       0.0%  (0/240)  (tests can't distinguish)
+neither pass:    41.2%  (99/240)  (code error or wrong choice)
+
+Interpretation bias (chose A / decisive): 75.2%  (106/141)
+
+── By source ──────────────────────────────────────────
+  mbpp      A:68.4%  B:10.5%  [19 items]
+  ds1000    A:23.7%  B:18.5%  [27 items]
+
+── By ambiguity type ──────────────────────────────────
+  coreferential              A:12.0%  B:16.0%  [10 items]
+  syntactic                  A:60.0%  B:17.8%  [9 items]
+  scopal                     A:37.5%  B:25.0%  [8 items]
+  collective_distributive    A:53.3%  B:6.7%  [15 items]
+  elliptical                 A:60.0%  B:13.3%  [6 items]
+
+── By risk level ──────────────────────────────────────
+  low    A:48.3%  B:15.0%  [36 items]
+  high   A:31.7%  B:13.3%  [12 items]
+
+── Per-item results ───────────────────────────────────
+  AMBI/001    A:5/5  B:0/5  (mbpp, collective_d)
+  AMBI/002    A:4/5  B:1/5  (mbpp, syntactic)
+  AMBI/003    A:0/5  B:0/5  (mbpp, collective_d)
+  AMBI/004    A:5/5  B:0/5  (mbpp, collective_d)
+  AMBI/005    A:2/5  B:0/5  (mbpp, coreferentia)
+  AMBI/006    A:0/5  B:2/5  (mbpp, collective_d)
+  AMBI/007    A:5/5  B:0/5  (mbpp, collective_d)
+  AMBI/008    A:5/5  B:0/5  (mbpp, collective_d)
+  AMBI/009    A:5/5  B:0/5  (mbpp, syntactic)
+  AMBI/010    A:0/5  B:0/5  (mbpp, collective_d)
+  AMBI/011    A:5/5  B:0/5  (mbpp, syntactic)
+  AMBI/013    A:5/5  B:0/5  (mbpp, collective_d)
+  AMBI/014    A:5/5  B:0/5  (mbpp, collective_d)
+  AMBI/015    A:4/5  B:0/5  (ds1000, coreferentia)
+  AMBI/016    A:0/5  B:0/5  (ds1000, coreferentia)
+  AMBI/017    A:0/5  B:0/5  (ds1000, coreferentia)
+  AMBI/019    A:0/5  B:0/5  (ds1000, coreferentia)
+  AMBI/020    A:0/5  B:0/5  (ds1000, coreferentia)
+  AMBI/021    A:0/5  B:5/5  (ds1000, coreferentia)
+  AMBI/022    A:0/5  B:0/5  (ds1000, coreferentia)
+  AMBI/023    A:0/5  B:3/5  (ds1000, coreferentia)
+  AMBI/024    A:0/5  B:0/5  (ds1000, coreferentia)
+  AMBI/025    A:5/5  B:0/5  (mbpp, syntactic)
+  AMBI/026    A:0/5  B:5/5  (ds1000, syntactic)
+  AMBI/030    A:3/5  B:2/5  (ds1000, syntactic)
+  AMBI/031    A:0/5  B:0/5  (ds1000, syntactic)
+  AMBI/033    A:0/5  B:0/5  (ds1000, syntactic)
+  AMBI/034    A:5/5  B:0/5  (ds1000, syntactic)
+  AMBI/035    A:0/5  B:5/5  (mbpp, scopal)
+  AMBI/036    A:1/5  B:0/5  (ds1000, scopal)
+  AMBI/038    A:0/5  B:5/5  (ds1000, scopal)
+  AMBI/039    A:5/5  B:0/5  (mbpp, scopal)
+  AMBI/040    A:0/5  B:0/5  (ds1000, scopal)
+  AMBI/042    A:0/5  B:0/5  (ds1000, scopal)
+  AMBI/043    A:0/5  B:0/5  (ds1000, collective_d)
+  AMBI/047    A:0/5  B:0/5  (ds1000, collective_d)
+  AMBI/048    A:5/5  B:0/5  (mbpp, collective_d)
+  AMBI/049    A:0/5  B:0/5  (ds1000, collective_d)
+  AMBI/051    A:5/5  B:0/5  (ds1000, collective_d)
+  AMBI/052    A:0/5  B:3/5  (ds1000, collective_d)
+  AMBI/054    A:4/5  B:1/5  (mbpp, elliptical)
+  AMBI/056    A:0/5  B:2/5  (ds1000, elliptical)
+  AMBI/057    A:4/5  B:0/5  (ds1000, elliptical)
+  AMBI/058    A:5/5  B:0/5  (ds1000, elliptical)
+  AMBI/060    A:5/5  B:0/5  (ds1000, elliptical)
+  AMBI/062    A:0/5  B:1/5  (mbpp, elliptical)
+  AMBI/063    A:5/5  B:0/5  (humaneval, scopal)
+  AMBI/064    A:4/5  B:0/5  (humaneval, scopal)
+
+Total time:  1086.3s
+Results:     /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/perturbed_claude-sonnet_20260505_195935.jsonl
+Input:       perturbed_claude-sonnet_20260505_195935.jsonl
+Items:       48
+Judge model: openai/gpt-5.4-mini
+
+[ 1/48] AMBI/001  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.7s)
+[ 2/48] AMBI/002  (mbpp, syntactic)  5 sample(s)...  ['EA', 'SA', 'SA', 'SA', 'EA']  (6.6s)
+[ 3/48] AMBI/003  (mbpp, collective_distributive)  5 sample(s)...  ['EA', 'SA', 'SA', 'EA', 'SA']  (4.7s)
+[ 4/48] AMBI/004  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.9s)
+[ 5/48] AMBI/005  (mbpp, coreferential)  5 sample(s)...  ['EA', 'EA', 'SA', 'EA', 'EA']  (6.3s)
+[ 6/48] AMBI/006  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (5.7s)
+[ 7/48] AMBI/007  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.7s)
+[ 8/48] AMBI/008  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.1s)
+[ 9/48] AMBI/009  (mbpp, syntactic)  5 sample(s)...  ['SA', 'EA', 'SA', 'SA', 'SA']  (4.8s)
+[10/48] AMBI/010  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (5.0s)
+[11/48] AMBI/011  (mbpp, syntactic)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (5.8s)
+[12/48] AMBI/013  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.4s)
+[13/48] AMBI/014  (mbpp, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.3s)
+[14/48] AMBI/015  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.2s)
+[15/48] AMBI/016  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.1s)
+[16/48] AMBI/017  (ds1000, coreferential)  5 sample(s)...  ['EA', 'EA', 'EA', 'EA', 'EA']  (6.7s)
+[17/48] AMBI/019  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.1s)
+[18/48] AMBI/020  (ds1000, coreferential)  5 sample(s)...  ['EA', 'SA', 'SA', 'SA', 'SA']  (5.2s)
+[19/48] AMBI/021  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'EA', 'SA']  (5.5s)
+[20/48] AMBI/022  (ds1000, coreferential)  5 sample(s)...  ['SA', 'EA', 'SA', 'SA', 'SA']  (5.8s)
+[21/48] AMBI/023  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'EA', 'SA']  (6.7s)
+[22/48] AMBI/024  (ds1000, coreferential)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.8s)
+[23/48] AMBI/025  (mbpp, syntactic)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (5.1s)
+[24/48] AMBI/026  (ds1000, syntactic)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (5.2s)
+[25/48] AMBI/030  (ds1000, syntactic)  5 sample(s)...  ['EA', 'EA', 'EA', 'EA', 'EA']  (8.0s)
+[26/48] AMBI/031  (ds1000, syntactic)  5 sample(s)...  ['SA', 'EA', 'SA', 'SA', 'SA']  (6.1s)
+[27/48] AMBI/033  (ds1000, syntactic)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.8s)
+[28/48] AMBI/034  (ds1000, syntactic)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (9.4s)
+[29/48] AMBI/035  (mbpp, scopal)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.4s)
+[30/48] AMBI/036  (ds1000, scopal)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.7s)
+[31/48] AMBI/038  (ds1000, scopal)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (5.8s)
+[32/48] AMBI/039  (mbpp, scopal)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.2s)
+[33/48] AMBI/040  (ds1000, scopal)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.8s)
+[34/48] AMBI/042  (ds1000, scopal)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.3s)
+[35/48] AMBI/043  (ds1000, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (7.7s)
+[36/48] AMBI/047  (ds1000, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.6s)
+[37/48] AMBI/048  (mbpp, collective_distributive)  5 sample(s)...  ['EA', 'SA', 'SA', 'EA', 'SA']  (5.8s)
+[38/48] AMBI/049  (ds1000, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (5.9s)
+[39/48] AMBI/051  (ds1000, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.7s)
+[40/48] AMBI/052  (ds1000, collective_distributive)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.5s)
+[41/48] AMBI/054  (mbpp, elliptical)  5 sample(s)...  ['SA', 'EA', 'SA', 'SA', 'SA']  (4.9s)
+[42/48] AMBI/056  (ds1000, elliptical)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (5.5s)
+[43/48] AMBI/057  (ds1000, elliptical)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.6s)
+[44/48] AMBI/058  (ds1000, elliptical)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (6.5s)
+[45/48] AMBI/060  (ds1000, elliptical)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (5.4s)
+[46/48] AMBI/062  (mbpp, elliptical)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.3s)
+[47/48] AMBI/063  (humaneval, scopal)  5 sample(s)...  ['EA', 'SA', 'SA', 'SA', 'EA']  (5.0s)
+[48/48] AMBI/064  (humaneval, scopal)  5 sample(s)...  ['SA', 'SA', 'SA', 'SA', 'SA']  (4.4s)
+
+=======================================================
+Judge model: openai/gpt-5.4-mini
+Samples classified: 240
+
+── Label distribution ─────────────────────────────────
+  SA                211  (87.9%)  ██████████████████████████
+  EA                 29  (12.1%)  ███
+
+Total time: 273.8s
+Output:     /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/classified_claude-sonnet_20260505_195935.jsonl
+
+========================================================================
+Table 1 — Ambiguity Tax  (Tax = Clean − Pert-Either)
+========================================================================
+Model                     Clean   Pert-A   Pert-B  Pert-Either   Tax(pp)
+------------------------------------------------------------------------
+  claude-sonnet           51.7%    44.2%    14.6%        58.8%      -7.1
+
+==================================================================================
+Table — pass@1 (unbiased estimator)  Tax = baseline − pass_either, both at @1
+==================================================================================
+Model                       Clean      Pert-A      Pert-B  Pert-Either     Tax(pp)
+----------------------------------------------------------------------------------
+  claude-sonnet             51.7%       44.2%       14.6%       58.8%        -7.1
+
+==================================================================================
+Table — pass@3 (unbiased estimator)  Tax = baseline − pass_either, both at @3
+==================================================================================
+Model                       Clean      Pert-A      Pert-B  Pert-Either     Tax(pp)
+----------------------------------------------------------------------------------
+  claude-sonnet             54.6%       49.0%       21.9%       66.5%       -11.9
+
+==================================================================
+Table — Interpretation Choice  (mutually exclusive; A-bias = chose_a / decisive)
+==================================================================
+Model                   Chose-A  Chose-B    Both  Neither   A-bias
+------------------------------------------------------------------
+  claude-sonnet          44.2%   14.6%   0.0%   41.2%    75.2%
+
+======================================================================
+Table 4 — pass@k(A) / pass@k(B) by Ambiguity Type
+======================================================================
+
+  claude-sonnet
+  Ambiguity Type                 pass_a   pass_b     n
+  -------------------------------------------------------
+  coreferential                  12.0%    16.0%    10
+  syntactic                      60.0%    17.8%     9
+  scopal                         37.5%    25.0%     8
+  collective_distributive        53.3%     6.7%    15
+  elliptical                     60.0%    13.3%     6
+
+================================================================
+Table 2 — Behavioral Label Distribution  (Error = judge LLM call failed)
+================================================================
+Model                       SA      EA      AC   Unclass   Error
+----------------------------------------------------------------
+  claude-sonnet          87.9%   12.1%    0.0%      0.0%    0.0%
+
+=================================================================
+Table 3 — Behavioral Label × Interpretation Correctness
+=================================================================
+
+  claude-sonnet
+  Label              pass_a   pass_b  neither      n
+  --------------------------------------------------
+  SA                 44.5%    14.7%    40.8%    211
+  EA                 41.4%    13.8%    44.8%     29
+Saved metrics JSON: /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/metrics_summary.json
+Saved metrics CSV:  /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/metrics_summary.csv
+Saved: /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/analysis_claude-sonnet_20260505_194406/plot_pass_rates.png
+Saved: /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/analysis_claude-sonnet_20260505_194406/plot_ambiguity_tax_all_models.png
+Saved: /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/analysis_claude-sonnet_20260505_194406/plot_tax_by_type_per_model.png
+Saved: /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/analysis_claude-sonnet_20260505_194406/plot_tax_by_type_aggregated.png
+Saved: /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/analysis_claude-sonnet_20260505_194406/plot_delta_per_item.png
+Saved: /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/analysis_claude-sonnet_20260505_194406/plot_sa_ea_ac.png
+Saved: /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/analysis_claude-sonnet_20260505_194406/plot_sa_ea_ac_aggregated.png
+Saved: /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/analysis_claude-sonnet_20260505_194406/plot_sa_ea_ac_by_risk.png
+Saved: /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/analysis_claude-sonnet_20260505_194406/plot_sa_ea_ac_by_risk_aggregated.png
+[pipeline] Tested model is Claude family — using gpt-5.4-mini as judge to avoid same-family circularity.
+
+#################################################################
+  AmbiCode-Eval Full Pipeline
+  Tested model : claude-sonnet
+  Judge model  : gpt-5.4-mini
+  n_samples    : 5  temperature: 0.8
+  Started at   : 2026-05-05 19:44:06
+#################################################################
+
+=================================================================
+  Step 1/4 — Baseline evaluation (clean prompts)
+  /Users/ender_yang/opt/anaconda3/bin/python3 /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/scripts/run_baseline_eval.py --model claude-sonnet --temperature 0.8 --n-samples 5 --max-tokens 2048 --source all --benchmark data/benchmark/benchmark_v2_full.jsonl
+=================================================================
+
+
+[pipeline] Step 1/4 — Baseline evaluation (clean prompts) done in 928.1s
+
+=================================================================
+  Step 2/4 — Perturbed evaluation (ambiguous prompts)
+  /Users/ender_yang/opt/anaconda3/bin/python3 /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/scripts/run_perturbed_eval.py --model claude-sonnet --temperature 0.8 --n-samples 5 --max-tokens 2048 --source all --benchmark data/benchmark/benchmark_v2_full.jsonl
+=================================================================
+
+
+[pipeline] Step 2/4 — Perturbed evaluation (ambiguous prompts) done in 1087.2s
+
+=================================================================
+  Step 3/4 — SA/EA/AC behavioral classification
+  /Users/ender_yang/opt/anaconda3/bin/python3 /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/scripts/run_classification.py --input /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/perturbed_claude-sonnet_20260505_195935.jsonl --judge-model gpt-5.4-mini --max-tokens 256
+=================================================================
+
+
+[pipeline] Step 3/4 — SA/EA/AC behavioral classification done in 274.7s
+
+=================================================================
+  Step 4/4 — Analysis and plot generation
+  /Users/ender_yang/opt/anaconda3/bin/python3 /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/scripts/analyze_results.py --baseline /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/baseline_claude-sonnet_20260505_194408.jsonl --perturbed /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/perturbed_claude-sonnet_20260505_195935.jsonl --classified /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/classified_claude-sonnet_20260505_195935.jsonl --label claude-sonnet --output /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/analysis_claude-sonnet_20260505_194406
+=================================================================
+
+
+[pipeline] Step 4/4 — Analysis and plot generation done in 1.2s
+
+#################################################################
+  Pipeline complete in 38.2 min
+  Results : /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/
+  Plots   : /Users/ender_yang/Desktop/HU/Spring26/MIT6.861/6.8610_NLP_Project/data/results/analysis_claude-sonnet_20260505_194406/
+#################################################################
+

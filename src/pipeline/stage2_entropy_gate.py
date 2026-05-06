@@ -1,13 +1,22 @@
-"""Stage 2 — Entropy Gate.
+"""Stage 2 — Bilateral Naturalness Gate (v2 of the Entropy Gate).
 
-For each Stage 1 perturbation, 5 cheap judge models read ONLY the perturbed
-prompt + two interpretations (shuffled as X/Y). Each judge picks which
-interpretation the prompt most naturally conveys.
+For each Stage-1 perturbation, 5 judge models read the perturbed prompt and
+both interpretations (shuffled as X/Y). Each judge answers TWO independent
+yes/no questions:
+  Q_X: "Would a typical Python developer naturally produce code matching
+        Interpretation X?"
+  Q_Y: same for Y.
 
-Shannon entropy over the A/B vote distribution measures ambiguity quality:
-  - 5-0 split → H=0.00 → no ambiguity → FAIL
-  - 4-1 split → H=0.72 → borderline
-  - 3-2 split → H=0.97 → real ambiguity → PASS
+Both can be yes (genuine ambiguity), both can be no (neither natural), or
+they can split.
+
+Pass criterion: yes_a >= min_yes_per_side AND yes_b >= min_yes_per_side
+(default min = 3 of 5 judges).
+
+Shannon entropy is still computed over the (yes_a, yes_b) split for
+diagnostic use but is no longer the pass criterion. Renaming to
+"naturalness_gate" was avoided to minimize churn — the file/key stays
+"entropy_gate" for now.
 """
 
 from __future__ import annotations
@@ -30,17 +39,22 @@ from src.util.pipeline_runner import run_pipeline
 
 @dataclass
 class JudgeVote:
-    """One judge's vote on which interpretation a prompt conveys."""
+    """One judge's bilateral verdict on an (A, B) pair.
+
+    Each judge answers two independent yes/no questions: is A natural? is B natural?
+    Mapped from X/Y back to A/B after the shuffle is undone.
+    """
     model: str
-    choice: str = ""        # "A" or "B" (mapped back from X/Y)
-    confidence: str = ""    # "high", "medium", "low"
-    raw_choice: str = ""    # "X" or "Y" (before unshuffling)
+    a_natural: Optional[bool] = None  # True = "yes", False = "no", None = error
+    b_natural: Optional[bool] = None
+    raw_x_natural: str = ""           # "yes"/"no" before unshuffling
+    raw_y_natural: str = ""
     error: Optional[str] = None
 
 
 @dataclass
 class EntropyResult:
-    """Entropy gate result for one generation within a task."""
+    """Bilateral-naturalness verdict for one generation within a task."""
     generator_model: str
     perturbed_prompt: str = ""
     interpretation_a: str = ""
@@ -49,10 +63,15 @@ class EntropyResult:
     # Judge votes (mapped to A/B)
     votes: list[dict] = field(default_factory=list)
 
-    # Entropy computation
+    # Bilateral counts
+    yes_a: int = 0      # judges saying A is natural
+    yes_b: int = 0      # judges saying B is natural
+
+    # Back-compat aliases for v1 readers (count_a/count_b == yes_a/yes_b semantically)
     count_a: int = 0
     count_b: int = 0
-    entropy: float = 0.0
+    entropy: float = 0.0    # binary entropy of (yes_a, yes_b) split — diagnostic only
+
     passed: bool = False
 
     # Shuffle record: True means A→X, B→Y; False means A→Y, B→X
@@ -87,10 +106,11 @@ class Stage2Result:
 # ── Entropy computation ─────────────────────────────────────────────────────
 
 def compute_entropy(count_a: int, count_b: int) -> float:
-    """Binary Shannon entropy from A/B vote counts.
+    """Binary Shannon entropy from A/B counts (diagnostic only in v2).
 
-    Returns 0.0 when all votes agree, 1.0 when perfectly split.
-    With 5 judges: 5-0 → 0.0, 4-1 → 0.722, 3-2 → 0.971.
+    Returns 0.0 when all "yes" votes line up on one side, 1.0 when split evenly.
+    With 5 judges: 5-0 → 0.0, 4-1 → 0.722, 3-2 → 0.971. In v2 this is no longer
+    the pass criterion — the orchestrator uses (yes_a >= min, yes_b >= min) instead.
     """
     total = count_a + count_b
     if total == 0:
@@ -107,6 +127,18 @@ def compute_entropy(count_a: int, count_b: int) -> float:
 
 # ── Single judge call ───────────────────────────────────────────────────────
 
+def _yn(value: object) -> Optional[bool]:
+    """Parse 'yes'/'no' (case-insensitive) into bool. Anything else → None."""
+    if not isinstance(value, str):
+        return None
+    v = value.strip().lower()
+    if v == "yes":
+        return True
+    if v == "no":
+        return False
+    return None
+
+
 def judge_single(
     client: LLMClient,
     perturbed_prompt: str,
@@ -116,10 +148,10 @@ def judge_single(
     config: dict,
     a_is_x: bool,
 ) -> JudgeVote:
-    """One judge votes on which interpretation the prompt conveys.
+    """One judge gives a bilateral verdict on whether A and B each read naturally.
 
     Interpretations are presented as X/Y (shuffled to avoid position bias).
-    The vote is mapped back to A/B before returning.
+    Returns a JudgeVote whose a_natural/b_natural fields are True/False/None.
     """
     if a_is_x:
         interp_x, interp_y = interpretation_a, interpretation_b
@@ -146,21 +178,28 @@ def judge_single(
         raw = resp.choices[0]
         parsed = parse_json_response(raw)
 
-        raw_choice = parsed.get("choice", "").upper()
-        confidence = parsed.get("confidence", "")
+        x_raw = str(parsed.get("x_natural", "")).strip().lower()
+        y_raw = str(parsed.get("y_natural", "")).strip().lower()
+        x_yn = _yn(x_raw)
+        y_yn = _yn(y_raw)
 
-        if raw_choice == "X":
-            choice = "A" if a_is_x else "B"
-        elif raw_choice == "Y":
-            choice = "B" if a_is_x else "A"
+        if x_yn is None or y_yn is None:
+            raise ValueError(
+                f"Invalid yes/no response. x_natural={x_raw!r}, y_natural={y_raw!r}"
+            )
+
+        # Map X/Y verdicts back to A/B
+        if a_is_x:
+            a_yn, b_yn = x_yn, y_yn
         else:
-            raise ValueError(f"Invalid choice: {raw_choice}")
+            a_yn, b_yn = y_yn, x_yn
 
         return JudgeVote(
             model=model_alias,
-            choice=choice,
-            confidence=confidence,
-            raw_choice=raw_choice,
+            a_natural=a_yn,
+            b_natural=b_yn,
+            raw_x_natural=x_raw,
+            raw_y_natural=y_raw,
         )
     except Exception as e:
         error_msg = str(e)
@@ -179,12 +218,12 @@ def evaluate_generation(
     generator_model: str,
     config: dict,
 ) -> EntropyResult:
-    """Run all judges on a single perturbation concurrently."""
+    """Run all judges on a single perturbation concurrently (bilateral)."""
     eg_config = config["entropy_gate"]
     judges = eg_config["judge_models"]
-    min_entropy = eg_config["min_entropy"]
+    min_yes = eg_config.get("min_yes_per_side", 3)
 
-    # Deterministic shuffle based on prompt content
+    # Deterministic shuffle based on prompt content (avoids position bias)
     a_is_x = hash(perturbed_prompt) % 2 == 0
 
     votes: dict[str, JudgeVote] = {}
@@ -202,12 +241,12 @@ def evaluate_generation(
     vote_list = [votes[m] for m in judges]
     valid = [v for v in vote_list if not v.error]
 
-    count_a = sum(1 for v in valid if v.choice == "A")
-    count_b = sum(1 for v in valid if v.choice == "B")
-    entropy = compute_entropy(count_a, count_b)
+    yes_a = sum(1 for v in valid if v.a_natural is True)
+    yes_b = sum(1 for v in valid if v.b_natural is True)
+    entropy = compute_entropy(yes_a, yes_b)
 
     clean_votes = [
-        {k: v for k, v in asdict(vote).items() if k != "raw_choice"}
+        {k: v for k, v in asdict(vote).items() if k not in ("raw_x_natural", "raw_y_natural")}
         for vote in vote_list
     ]
 
@@ -217,10 +256,12 @@ def evaluate_generation(
         interpretation_a=interpretation_a,
         interpretation_b=interpretation_b,
         votes=clean_votes,
-        count_a=count_a,
-        count_b=count_b,
-        entropy=entropy,
-        passed=entropy >= min_entropy,
+        yes_a=yes_a,
+        yes_b=yes_b,
+        count_a=yes_a,    # back-compat alias
+        count_b=yes_b,    # back-compat alias
+        entropy=entropy,  # diagnostic only
+        passed=(yes_a >= min_yes and yes_b >= min_yes),
         a_was_x=a_is_x,
     )
 
@@ -264,26 +305,35 @@ def run_stage2(
 
     eg_config = config["entropy_gate"]
     judges = eg_config["judge_models"]
-    min_entropy = eg_config["min_entropy"]
+    min_yes = eg_config.get("min_yes_per_side", 3)
     max_workers = eg_config.get("max_workers", 12)
     client = LLMClient()
 
-    # Count total generations to evaluate
+    # v2: only audit generations that (1) didn't error and (2) didn't opt out.
+    # If Stage 1.5 ran upstream, also restrict to generations that PASSED it
+    # (the Stage 1.5 results are not threaded into Stage 2 directly — the
+    # orchestrator filters before calling run_stage2 if desired).
     total_gens = sum(
         1 for r in stage1_results
-        for g in r.generations if not g.get("error")
+        for g in r.generations
+        if not g.get("error") and not g.get("opted_out") and g.get("perturbed_prompt")
     )
 
-    print(f"Stage 2 — Entropy Gate")
+    print(f"Stage 2 — Bilateral Naturalness Gate")
     print(f"  Tasks: {len(stage1_results)}")
     print(f"  Generations to evaluate: {total_gens}")
     print(f"  Judges: {', '.join(judges)}")
-    print(f"  Entropy threshold: H >= {min_entropy}")
+    print(f"  Pass criterion: yes_a >= {min_yes} AND yes_b >= {min_yes}")
     print(f"  Workers: {max_workers}")
     print()
 
     def process_fn(index: int, s1: Stage1Result) -> dict | None:
-        ok_gens = [g for g in s1.generations if not g.get("error")]
+        ok_gens = [
+            g for g in s1.generations
+            if not g.get("error")
+            and not g.get("opted_out")
+            and g.get("perturbed_prompt")
+        ]
         if not ok_gens:
             return None
 
@@ -316,21 +366,22 @@ def run_stage2(
         ).to_dict()
 
         passed_count = sum(1 for er in entropy_results if er.passed)
-        entropy_strs = " | ".join(
-            f"{er.generator_model}:H={er.entropy:.2f}{'P' if er.passed else 'F'}"
+        summary_strs = " | ".join(
+            f"{er.generator_model}:yA={er.yes_a},yB={er.yes_b}{'P' if er.passed else 'F'}"
             for er in entropy_results
         )
 
-        # Build detailed vote breakdown per generation
+        # Per-generation vote breakdown (bilateral)
         vote_details = []
         for er in entropy_results:
             valid_votes = [v for v in er.votes if not v.get("error")]
             vote_str = " ".join(
-                f"{v['model']}={v['choice']}" for v in valid_votes
+                f"{v['model']}=[A:{'y' if v['a_natural'] else 'n'},B:{'y' if v['b_natural'] else 'n'}]"
+                for v in valid_votes
             )
             vote_details.append(
                 f"    {er.generator_model:20s}  "
-                f"A={er.count_a} B={er.count_b}  H={er.entropy:.3f}  "
+                f"yA={er.yes_a} yB={er.yes_b}  H={er.entropy:.3f}  "
                 f"{'PASS' if er.passed else 'FAIL'}  "
                 f"[{vote_str}]"
             )
@@ -338,7 +389,7 @@ def run_stage2(
         result["__progress__"] = (
             f"{s1.task_id:25s}  "
             f"pass={passed_count}/{len(ok_gens)}  "
-            f"[{entropy_strs}]\n" +
+            f"[{summary_strs}]\n" +
             "\n".join(vote_details)
         )
         return result
