@@ -4,7 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**AmbiCode-Eval** — a benchmark of 62 tasks measuring how LLMs handle linguistically ambiguous coding prompts. Quantifies the "Ambiguity Tax" (pass@k drop from ambiguity injection) and classifies model behavior into Silent Assumption / Explicit Assumption / Active Clarification.
+**AmbiCode-Eval** — a benchmark of **48 verified items** (`benchmark_v2_full.jsonl`) measuring how LLMs handle linguistically ambiguous coding prompts. Quantifies the "Ambiguity Tax" (pass@k drop from ambiguity injection) and classifies model behavior into Silent Assumption / Explicit Assumption / Active Clarification.
+
+**Status (2026-05-06)**: project complete. 5 SOTA models evaluated end-to-end (GPT-5.5, Claude Sonnet 4.6, Claude Opus 4.6, Gemini 3.1 Pro, DeepSeek V4 Pro). Two notebooks delivered: poster-facing (`milestone_analysis.ipynb`) and team-facing (`internal_result_report.ipynb`).
+
+**Three findings**: (1) anti-calibration — 4 / 5 models go *more* silent on high-risk items; AC = 0% across all models on high-risk; (2) AC is a deliberation product (3 × SA latency for Opus / Gemini) but reasoning is necessary not sufficient (DeepSeek inverts); (3) no single best model on ambiguity — every model has its own weak ambiguity type.
 
 Target models: GPT, Claude, Gemini, DeepSeek, Qwen — all called via OpenRouter.
 
@@ -142,22 +146,34 @@ Otherwise, write the requested Python code and wrap it in @@CODE_START@@ and @@C
 
 Naturalistic — no meta-prompt that pre-announces "this might be ambiguous" or enumerates SA/EA/AC options.
 
-## Current Status
+## Current Status — PROJECT COMPLETE (2026-05-06)
 
-- **Phase 1 (Benchmark Construction)**: DONE — 62 verified items in `data/benchmark/benchmark.jsonl`
-  - Sources: MBPP (26), DS-1000 (36)
-  - All 5 ambiguity types and both risk levels represented
-  - DS-1000 normalization done (845 tasks, Matplotlib excluded)
-  - Scaled pipeline built (`scripts/run_scaled_pipeline.py`)
-- **Phases 2–4 (Inference, Classification, Analysis)**: DONE
-  - Phase 2 — `run_baseline_eval.py` + `run_perturbed_eval.py`: two-condition sampling with sandbox execution
-    - DS-1000 dual-blind: `__SOLUTION__` wrapper for test_a (harness), raw code for test_b (self-contained)
-    - `parse_response` heuristic distinguishes code-without-markers from clarification questions
-  - Phase 3 — `run_classification.py`: LLM-as-Judge with 3-question rubric → SA/EA/AC labels
-    - Judge failures tracked as `error` label (visible in stats, not silently dropped)
-    - Auto-judge selection avoids same-family circularity (Claude → gpt-5.4-mini; others → claude-haiku)
-  - Phase 4 — `analyze_results.py`: 3-layer metrics + 8+ plots
-    - Unbiased pass@k via Chen et al. 2021 estimator
-    - Cross-model analysis via auto-discovery or explicit `--baseline/--perturbed/--classified` lists
-  - End-to-end: `run_full_pipeline.py` runs all 4 phases for one model
-- See `docs/project_status.md` for full details and audit fixes
+- **Phase 1 (benchmark construction)**: DONE — `data/benchmark/benchmark_v2_full.jsonl` (48 items: 19 MBPP + 27 DS-1000 + 2 HumanEval)
+  - v1 → v2 cleanup documented in `docs/benchmark_audit.md`
+  - v2 generation pipeline (4 reforms: opt-out / info conservation / bilateral naturalness / Stage-1.5 quality gate) documented in `docs/benchmark_generated_v2.md`
+  - HumanEval re-attempted with v2 pipeline; 2 items survived all stages
+- **Phases 2–4 (evaluation)**: DONE — 5 SOTA models on `benchmark_v2_full.jsonl` (n=5, T=0.8)
+  - Models: GPT-5.5, Claude Sonnet 4.6, Claude Opus 4.6, Gemini 3.1 Pro, DeepSeek V4 Pro
+  - Per-item LLM-call parallelism (`--sample-workers 5`) — n=5 samples issued concurrently per item
+  - HumanEval `check()` invocation patch in `stage4_exclusivity_gate.py` + both eval scripts
+- **Phase 5 (analysis)**: DONE
+  - `scripts/build_milestone_analysis.py` — aggregates results + bootstrap 95% CIs (B=2000)
+  - `scripts/plot_style.py` — consistent matplotlib style + per-model brand colors
+  - `data/results/milestone/` — `summary.json`, `per_item.csv`, `by_type.csv`, `by_risk.csv`, 14 figures (PNG + PDF)
+- **Notebooks**: DONE
+  - `notebooks/milestone_analysis.ipynb` — poster-facing (55 cells, 14 figures, 11 RQs/sub-sections)
+  - `notebooks/internal_result_report.ipynb` — team-facing (37 cells, sanity checks + AC sample gallery + failure-mode dissection)
+  - Both regenerated from Python sources (`scripts/build_milestone_notebook.py`, `scripts/build_internal_report.py`)
+- **Poster**: design phase. Layout brainstormed in chat (3-column landscape 48"W × 36"H, 8-block); content TBD.
+
+### Three findings (full detail in `docs/findings.md`)
+
+1. **Anti-calibration** — 4/5 models go *more* silent on high-risk items than on low-risk; AC drops to 0% on high-risk for every model. Only Gemini is calibrated (+2.8 pp), marginally.
+2. **AC = deliberation product** — Opus AC/SA latency = 3.49×, Gemini = 3.05×; DeepSeek inverts (SA latency = 41 s, AC < SA). Reasoning is necessary but not sufficient for AC > 0%.
+3. **No single best model on ambiguity** — every model has its own weak type; "ambiguity-handling ability" is a multi-dimensional skill bundle, not a single number.
+
+### Methodology limitation surfaced (Sonnet anomaly)
+
+`tax = baseline − pass_either` is interpretable as ambiguity-handling ability *only when* the baseline reflects the model's ability on the canonical reading. Sonnet's negative aggregate tax (-7.1 pp @1) is a phrasing-brittleness artifact (Spearman ρ = +0.52 between Sonnet's tax shortfall vs peers and Sonnet's baseline shortfall vs peers, p < 0.001). Mitigation: report a "shared-baseline cohort" (items where all models achieve baseline ≥ τ) alongside the aggregate.
+
+See `docs/findings.md` for full prose, `docs/project_status.md` for milestone status, `notebooks/milestone_analysis.ipynb` §9.7 for the limitation analysis.

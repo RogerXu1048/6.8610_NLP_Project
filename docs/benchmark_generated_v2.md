@@ -1,6 +1,6 @@
 # Benchmark Generation Pipeline v2 — Design
 
-*Last updated: 2026-05-05*
+*Last updated: 2026-05-06* — design 2026-05-05; HumanEval first run captured below; the 5-model evaluation that consumes the v2-built benchmark is documented in [`findings.md`](findings.md).
 
 This document describes the v2 redesign of the Phase-1 benchmark generation
 pipeline. The motivation is failure-mode analysis on the v1 benchmark

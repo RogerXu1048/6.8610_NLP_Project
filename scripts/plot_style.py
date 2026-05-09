@@ -186,12 +186,12 @@ def save_for_poster(
 ) -> dict[str, Path]:
     """Save the figure in both raster (300 dpi) and vector formats.
 
-    `out_dir` defaults to <project_root>/data/results/milestone/figures (anchored
-    to the project root so it works whether the notebook lives in /notebooks
-    or anywhere else).
+    `out_dir` defaults to <project_root>/plots/findings — the curated location
+    that's referenced by README and the poster. Anchored to the project root
+    so it works whether the notebook lives in /notebooks or anywhere else.
     """
     if out_dir is None:
-        out_dir = _project_root() / "data" / "results" / "milestone" / "figures"
+        out_dir = _project_root() / "plots" / "findings"
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     paths: dict[str, Path] = {}

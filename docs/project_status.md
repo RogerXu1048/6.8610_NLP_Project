@@ -1,15 +1,33 @@
 # AmbiCode-Eval — Project Status
 
-*Last updated: 2026-05-05*
+*Last updated: 2026-05-06*
 
-## Current State
+## Current State — **PROJECT COMPLETE**
 
-**Phase 1 + Phases 2–4 complete. First full 62-item evaluation run on two SOTA models.**
+All planned milestones for the Spring 2026 6.8610 deliverable are done:
 
-- **62 verified benchmark items** in `data/benchmark/benchmark.jsonl` (MBPP 26 + DS-1000 36)
-- **Full evaluation pipeline** runs end-to-end for any model: baseline → perturbed → classify → analyze
-- **Cross-model analysis** computes Ambiguity Tax, conditional pass@k, interpretation bias, and behavioral distributions
-- **Initial findings on gpt-5.4 + claude-sonnet** (n=5, T=0.8) — see [findings.md](findings.md)
+- ✅ **Phase 1 — benchmark construction**: `benchmark_v2_full.jsonl` (48 items)
+- ✅ **Phases 2–4 — model evaluation**: 5 SOTA models on the v2_full benchmark
+- ✅ **Phase 5 — analysis**: cross-model aggregation + bootstrap CIs
+- ✅ **Notebooks**: milestone (poster-facing) + internal report (team deep-dive)
+- ✅ **Docs**: findings, audit, v2 generation pipeline, benchmark guide, this status file
+- 🟡 **Poster**: design phase — 8-block landscape layout drafted, content TBD
+
+### Headline numbers (5 models, 48 items, n=5, T=0.8)
+
+| Model | Tax @1 | Tax @3 | A-bias | SA / EA / AC |
+|---|---|---|---|---|
+| GPT-5.5 | +10.8 pp | +15.4 pp | 79.5% | 90.4 / 9.6 / 0.0% |
+| Claude Sonnet 4.6 | −7.1 pp | −11.9 pp | 75.2% | 87.9 / 12.1 / 0.0% |
+| Claude Opus 4.6 | +6.7 pp | +3.7 pp | 80.7% | 82.1 / 17.1 / 0.8% |
+| Gemini 3.1 Pro | +10.8 pp | +11.7 pp | 77.9% | 87.9 / 6.2 / 1.7% |
+| DeepSeek V4 Pro | +11.2 pp | +12.9 pp | 73.8% | 81.2 / 15.8 / 1.2% |
+
+### Three findings (full prose in [findings.md](findings.md), figures in [milestone notebook](../notebooks/milestone_analysis.ipynb))
+
+1. **Anti-calibration** — 4 / 5 models go *more* silent on high-risk items than on low-risk; AC drops to 0% on high-risk for every model.
+2. **AC = deliberation product** — Opus and Gemini AC samples take 3× longer than SA samples; DeepSeek inverts (its SA latency is the longest of any model–behavior, AC is shorter than SA), so reasoning is necessary but not sufficient for AC > 0%.
+3. **No single best model on ambiguity** — every model has its own weak ambiguity type; no type is uniformly hard or uniformly easy across models.
 
 ## Benchmark Coverage (Phase 1)
 
@@ -194,18 +212,28 @@ identified five categories of quality issues across ~25 of the 62 items:
 ## Sample Workflow
 
 ```bash
-# 1. Build benchmark (Phase 1 — already done; benchmark.jsonl is in git)
-python scripts/run_scaled_pipeline.py
+# 1. Build benchmark (Phase 1 — already done; benchmark_v2_full.jsonl is in git)
+python scripts/run_perturbation.py        # if you want to rebuild end-to-end via v2 pipeline
 
-# 2. Evaluate one model end-to-end (Phases 2-4)
-python scripts/run_full_pipeline.py \
-    --model gpt-5.4 --n-samples 5 --temperature 0.8
+# 2. Evaluate ALL 5 SOTA models in parallel
+./scripts/run_milestone_eval.sh           # ~80 min on a Mac with Docker
 
-# 3. Repeat for additional models
-python scripts/run_full_pipeline.py --model claude-sonnet --n-samples 5 --temperature 0.8
+# 3. Aggregate + bootstrap CIs
+python scripts/build_milestone_analysis.py
 
-# 4. Cross-model report
-python scripts/analyze_results.py    # auto-discovers all results
+# 4. Regenerate notebooks from their Python sources
+python scripts/build_milestone_notebook.py
+python scripts/build_internal_report.py
 ```
 
-Outputs land in `data/results/` (jsonl per phase + plots + `metrics_summary.csv`).
+Outputs land in `data/results/milestone/` (`summary.json`, `per_item.csv`, `by_*.csv`, and figures in PNG + PDF).
+
+## Final deliverables
+
+| Artifact | What it is | Where |
+|---|---|---|
+| Benchmark | 48 items × full schema | `data/benchmark/benchmark_v2_full.jsonl` |
+| 5-model results | summary + per-item tables | `data/results/milestone/` |
+| Milestone notebook | 11 figures, 7 RQs, 3 case studies | `notebooks/milestone_analysis.ipynb` |
+| Internal report | sanity checks + AC gallery + failure dissection | `notebooks/internal_result_report.ipynb` |
+| Poster figures | 14 PNG (300 dpi) + 14 PDF (vector) | `data/results/milestone/figures/` |

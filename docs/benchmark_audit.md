@@ -1,6 +1,6 @@
 # Benchmark Quality Audit
 
-*Last updated: 2026-05-05*
+*Last updated: 2026-05-06* — audit done 2026-05-05; v2 build documented below; final benchmark in use is `benchmark_v2_full.jsonl` (48 items, includes 2 HumanEval items added via the v2 generation pipeline).
 
 A manual review of all 62 items in `data/benchmark/benchmark.jsonl`, conducted
 after the first full evaluation run on gpt-5.4 + claude-sonnet exposed

@@ -1,6 +1,103 @@
 # AmbiCode-Eval — Findings
 
-*Last updated: 2026-05-05*
+*Last updated: 2026-05-06*
+
+Three runs of model evaluation are recorded in this document, in chronological
+order:
+
+1. **First v1 run** (62 items, gpt-5.4 + claude-sonnet) — exposed the v1
+   benchmark quality issues that motivated the v2 build.
+2. **v2 run** (46 items, same two models) — validated that the v2 fixes
+   restored the tax signal.
+3. **v2_full milestone run** (48 items = v2 + 2 HumanEval, 5 SOTA models) —
+   the final deliverable for the Spring 2026 milestone.
+
+The §"Milestone Findings" below summarises run 3. Earlier sections preserve
+the run-1 narrative for reproducibility / audit trail.
+
+---
+
+## Milestone Findings (5 models, 48 items, n=5, T=0.8)
+
+*Run timestamps: 2026-05-05 (claude-sonnet, claude-opus); 2026-05-05 evening (gpt-5.5, gemini-3.1-pro, deepseek-v4-pro). Aggregated 2026-05-06 via `scripts/build_milestone_analysis.py`.*
+
+**Note**: GPT-5.5 (not 5.4) is used in the milestone. OpenRouter routed `openai/gpt-5.4` requests to `gpt-5.4-mini` under load during the original run, so we re-ran with `gpt-5.5` (a different production tier without auto-fallback). Qwen 3.6 Plus was attempted but full evaluation took > 4 hours per model; deferred.
+
+### Top-line table
+
+| Model | Tax @1 (95 % CI) | Tax @3 (95 % CI) | A-bias | SA / EA / AC |
+|---|---|---|---|---|
+| GPT-5.5 | +10.8 [−2.9, +23.7] | **+15.4 [+1.9, +28.7]** | 79.5% | 90.4 / 9.6 / 0.0% |
+| Claude Sonnet 4.6 | **−7.1** [−21.2, +6.3] | **−11.9** [−27.5, +3.1] | 75.2% | 87.9 / 12.1 / 0.0% |
+| Claude Opus 4.6 | +6.7 [−6.7, +19.6] | +3.7 [−8.5, +15.8] | 80.7% | 82.1 / 17.1 / 0.8% |
+| Gemini 3.1 Pro | +10.8 [−0.8, +23.3] | **+11.7 [+0.8, +24.0]** | 77.9% | 87.9 / 6.2 / 1.7% |
+| DeepSeek V4 Pro | +11.2 [−1.2, +23.3] | +12.9 [−0.2, +26.0] | 73.8% | 81.2 / 15.8 / 1.2% |
+
+*CIs are item-level bootstraps (B = 2000). Bold = CI excludes 0 (significant @ α = 0.05).*
+
+### Three findings
+
+#### 1. Anti-calibration — models go silent when stakes are high
+
+Across **4 of 5** models, transparency (EA + AC) **drops** on high-risk items by 7–13 pp. The naïve normative model is the opposite: SA on low-risk (low friction); EA/AC on high-risk (flag the bet so a wrong reading is catchable). Five SOTA models do the wrong thing.
+
+| Model | low-risk EA + AC | high-risk EA + AC | Δ |
+|---|---|---|---|
+| GPT-5.5 | 12.8% | 0.0% | **−12.8** |
+| Sonnet | 13.9% | 6.7% | −7.2 |
+| Opus | 20.0% | 11.7% | −8.3 |
+| **Gemini** | **7.2%** | **10.0%** | **+2.8** |
+| DeepSeek | 19.5% | 10.0% | −9.4 |
+
+GPT-5.5 reaches **100% SA on high-risk items**; AC collapses to **0% on high-risk for every model**, even Gemini and DeepSeek who produce non-zero AC overall. Only Gemini is calibrated, and only marginally.
+
+A plausible mechanism is **interface suppression**: high-risk items in this benchmark are disproportionately DS-1000, whose tight harness format (`result = ...; BEGIN SOLUTION; <code>`) leaves little room for prose, mechanically silencing models that *might* clarify if the response shape allowed it. We expect to test this in v3 by rewriting a subset of high-risk items in MBPP-style prose-friendly format.
+
+#### 2. AC is a deliberation product — but reasoning isn't sufficient
+
+| Model | AC / SA latency ratio |
+|---|---|
+| Claude Opus | **3.49 ×** |
+| Gemini 3.1 Pro | **3.05 ×** |
+| DeepSeek V4 Pro | 0.69 × |
+| GPT-5.5 / Sonnet | (no AC) |
+
+For Opus and Gemini, AC samples take **3 × longer** than SA — consistent with "AC requires extra inference compute spent surfacing the ambiguity." DeepSeek **inverts** the pattern: its SA latency (median 41 s) is the highest of any model–behavior combination, but AC is *shorter* than SA. DeepSeek's reasoning budget seems to go into "decide and commit silently" rather than "surface the choice."
+
+Reasoning capacity is **necessary** for AC > 0 (GPT-5.5 and Sonnet are 0%) but it is not **sufficient** — the inductive bias has to point toward "surface uncertainty" rather than "self-justify." This connects directly to the inference-time-scaling literature: more compute buys risk-awareness only when paired with the right prior.
+
+#### 3. There is no single best model on ambiguity
+
+Per-type tax @1 (pp):
+
+| Type | GPT-5.5 | Sonnet | Opus | Gemini | DeepSeek |
+|---|---|---|---|---|---|
+| coreferential | +6 | −12 | 0 | +10 | **+16** |
+| syntactic | +11 | −9 | +18 | +13 | **+24** |
+| scopal | +8 | 0 | +3 | **+20** | +10 |
+| coll/dist | **+21** | +7 | +4 | +8 | +5 |
+| elliptical | −3 | **−40** | +13 | +3 | 0 |
+
+Each model has its own weak type. No type breaks all five models, and no model handles every type well. **"Ambiguity-handling ability"** is therefore not a single capability that admits a leaderboard, but a multi-dimensional skill bundle.
+
+Three case studies (DS-1000) illustrate the heterogeneity:
+
+- **AMBI/043** (`reverse the lists`, coll/dist) — only Opus retains 4/5 after perturbation; the other four collapse to 0/5.
+- **AMBI/040** (`unique ID per name`, scopal) — every model collapses to 0/5. The cleanest tax signal in the benchmark.
+- **AMBI/049** (`binned counts of users' views`, coll/dist) — only Gemini and DeepSeek (the two reasoning models) retain the canonical reading.
+
+### Limitations identified during the milestone analysis
+
+- **Sonnet's negative tax** is a methodological artifact, not an ambiguity-handling story. On the 10 items where Sonnet is most "helped" by perturbation, Sonnet's clean-prompt baseline is on average **60 pp lower** than the 4-peer mean. Spearman ρ between "Sonnet's tax shortfall vs peers" and "Sonnet's baseline shortfall vs peers" = **+0.52, p < 0.001 across all 48 items**. This identifies a specific failure mode of `tax = baseline − pass_either`: the metric is valid only when the baseline reflects the model's ability on the canonical reading. When the baseline is dragged down by phrasing brittleness for reasons unrelated to ambiguity, the perturbation can incidentally repair the baseline shortfall and Tax will be biased low. Aggregate per-model claims should be qualified to "the shared-baseline cohort" (items where all models achieve baseline ≥ τ).
+- **A-bias 73–81% across all 5 models**: tightly clustered for models from 4 different providers, which suggests the bias is partially a Stage-1 construction artifact rather than a model-specific preference. Stage-1 rewrites the perturbed prompt *from* the canonical solution, which carries cues toward A.
+- **Statistical power**: Bootstrap CIs span ~25 pp at n=5. Pairwise contrasts within the positive-tax cluster (GPT / Opus / Gemini / DeepSeek) are not significant.
+- **Source skew**: 27 of 48 items are DS-1000. Tax-signal-positive cases concentrate there; MBPP and HumanEval contribute more weakly.
+
+Full discussion in `notebooks/milestone_analysis.ipynb` §9 Limitations.
+
+---
+
+## Original v1 + v2 Findings (preserved for audit trail)
 
 First full evaluation run of the 62-item benchmark on two SOTA models, with all
 audit fixes applied (DS-1000 dual-blind correct, MBPP baseline/perturbed

@@ -1,10 +1,14 @@
 # AmbiCode-Eval Benchmark Guide
 
+*Last updated: 2026-05-06*
+
 ## Overview
 
-AmbiCode-Eval is a benchmark of **62 tasks** measuring how LLMs handle linguistically ambiguous coding prompts. Each benchmark item contains a **clean prompt** (baseline) and a **perturbed prompt** (with injected linguistic ambiguity), along with two valid interpretations, reference solutions, and discriminative test suites.
+AmbiCode-Eval is a benchmark measuring how LLMs handle linguistically ambiguous coding prompts. Each benchmark item contains a **clean prompt** (baseline) and a **perturbed prompt** (with injected linguistic ambiguity), along with two valid interpretations, reference solutions, and discriminative test suites.
 
 The benchmark enables measuring the **Ambiguity Tax** — the drop in pass@k when models encounter ambiguous prompts — and classifying model behavior into **Silent Assumption (SA)**, **Explicit Assumption (EA)**, or **Active Clarification (AC)**.
+
+> **Active benchmark file**: `data/benchmark/benchmark_v2_full.jsonl` (**48 items**: 19 MBPP + 27 DS-1000 + 2 HumanEval). The original v1 file (`benchmark.jsonl`, 62 items) is preserved in the repo for reproducibility but should not be used for new evaluations — see [`benchmark_audit.md`](benchmark_audit.md) for the v1 → v2 changelog and rationale. The distributions tabulated below describe v1; v2_full counts are at the end of this section.
 
 ## Benchmark Distribution
 
