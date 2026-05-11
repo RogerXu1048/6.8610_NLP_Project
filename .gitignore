@@ -9,3 +9,4 @@ data/*
 !data/benchmark/
 data/benchmark/*
 !data/benchmark/benchmark.jsonl
+paper/*
